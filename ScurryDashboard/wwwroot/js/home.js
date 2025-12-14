@@ -1231,13 +1231,13 @@ function handleOnlinePaymentConfirm() {
         PaymentMode: mode
 
     };
-
+    debugger
     if (!confirm("Are you sure you want to complete this order?")) {
 
         return;
 
     }
-
+    debugger
     $("#confirmPayment").prop("disabled", true);
 
     $.ajax({

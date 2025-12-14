@@ -395,6 +395,20 @@
                        placeholder="Enter discount amount"
                        inputmode="numeric"
                        min="0">
+                @* <div id="paymentSummary" style="margin-top:14px; font-size:15px; border-top:1px dashed #e0e0e0; padding-top:12px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Subtotal</span>
+                    <strong id="paymentSubtotal">₹0.00</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Discount</span>
+                    <strong id="paymentDiscount">₹0.00</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-weight:900; font-size:16px;">
+                    <span>Final Amount</span>
+                    <strong id="paymentFinal">₹0.00</strong>
+                </div> *@
+            </div>
             </div>
 
             <!-- ERROR MESSAGE -->
@@ -497,7 +511,7 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 
-     let isHomeActive;
+    let isHomeActive;
     let currentPage = 1;
     let pageSize = 20;
     let isLoading = false;
@@ -530,8 +544,7 @@
     });
 
     function initHomeSwitch(){
-         debugger
-         $.ajax({
+     $.ajax({
              url: '/Home/GetAvailabilityHomeDelivery',
              method: 'GET',
              contentType: 'application/json',
@@ -542,22 +555,6 @@
              },
              error: function (xhr, status, error) {
              }
-         });
-
-    function initHomeSwitch() {
-        debugger
-        $.ajax({
-            url: '/Home/GetAvailabilityHomeDelivery',
-            method: 'GET',
-            contentType: 'application/json',
-            success: function (data) {
-                debugger
-                isHomeActive = data;
-                updateHomeUI();
-                // toggleHomeAvailability(isHomeActive);
-            },
-            error: function (xhr, status, error) {
-            }
         });
     }
 
@@ -569,7 +566,7 @@
     }
 
     // Calculate and display revenue
-        function calculateRevenue(orders) {
+    function calculateRevenue(orders) {
         if (!orders || orders.length === 0) {
             $('#totalRevenue').text('₹0.00');
             $('#orderCount').text('0 Orders');
@@ -760,7 +757,7 @@
         displayOrdersPage(filteredOrdersData);
     }
 
-            function displayOrdersPage(dataToDisplay = filteredOrdersData) {
+    function displayOrdersPage(dataToDisplay = filteredOrdersData) {
             // Build grouped & paged rows as before
             if (!dataToDisplay || dataToDisplay.length === 0) {
                 if (currentPage === 1) {
@@ -875,8 +872,6 @@
                 });
             }
         }
-
-
 
     $(document).on('click', '.btn-view-order', function () {
         const encoded = $(this).attr('data-orders');
@@ -1001,6 +996,7 @@
             alert('PDF download functionality not available');
         }
     }
+    
     $(document).on('click', '#bill-modal', function(e) {
         if (e.target.id === 'bill-modal') {
             closeBillModal();
@@ -1115,7 +1111,7 @@
         $("#bill-modal").fadeIn(300);
     }
 
-        $(document).on('click', '.btn-view-bill', function () {
+    $(document).on('click', '.btn-view-bill', function () {
         const orderId = $(this).attr('data-order-id');
 
 
@@ -1131,11 +1127,9 @@
         });
     });
 
-
     $(document).keyup(function(e) {
         if (e.key === "Escape") {
             closeBillModal();
         }
     });
-
 </script> 
