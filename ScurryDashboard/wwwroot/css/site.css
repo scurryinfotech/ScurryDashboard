@@ -838,8 +838,11 @@ body {
         padding: 0.188rem 0.5rem;
     }
 }
+#HomeBtn{
+    margin:5px;
+}
 #HomeBtn.connect {
-    background-color: #dc3545; 
+    background-color: #dc3545;
     color: white;
     font-weight: 600;
     border-radius: 30px;

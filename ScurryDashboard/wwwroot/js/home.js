@@ -243,14 +243,14 @@ $(document).ready(function () {
     });
 
     // Modal button: Accept or Complete (opens payment modal)
-    $(document).on("click", "#confirmOrderBtn", function () {
+    $(document).off("click", "#confirmOrderBtn").on("click", "#confirmOrderBtn", function () {
         const $btn = $(this);
         const tableTitle = $(".modal-title").text();
         const tableNo = parseInt(tableTitle.replace("Table", ""));
         const data = window.liveOrdersData || [];
 
+        // Accept assigning orders
         if ($btn.data("mode") !== "complete") {
-            // Accept all assigning orders for this table
             const assigningOrders = data.filter(
                 (order) => order.tableNo === tableNo && order.orderStatusId === 1
             );
@@ -266,10 +266,7 @@ $(document).ready(function () {
                 acceptOrder(order, function () {
                     completedAccepts++;
                     if (completedAccepts === totalAccepts) {
-                        safeCall(
-                            "showSuccessMessage",
-                            `Accepted ${totalAccepts} order(s) for Table ${tableNo}!`
-                        );
+                        safeCall("showSuccessMessage", `Accepted ${totalAccepts} order(s) for Table ${tableNo}!`);
 
                         setTimeout(() => {
                             checkAndStopBeepIfNoProblems();
@@ -282,26 +279,45 @@ $(document).ready(function () {
                     }
                 });
             });
-        } else {
-            // Complete flow -> open payment modal for active orders
-            const activeOrders = data.filter(
-                (order) => order.tableNo === tableNo && order.orderStatusId === 2
-            );
-            if (activeOrders.length === 0) {
-                safeCall("showSuccessMessage", "No active orders to complete!");
-                return;
-            }
 
-            currentOrderData = activeOrders.map((o) => o.id);
-
-            paymentContext = 'table';
-            // Reset modal UI
-            $(".payment-option").removeClass("selected");
-            $("#confirmPayment").prop("disabled", true);
-            $("#paymentError").removeClass("active");
-
-            $("#paymentModal").addClass("active");
+            return;
         }
+
+        // Complete flow -> open payment modal for active orders
+        const activeOrders = data.filter((order) => order.tableNo === tableNo && order.orderStatusId === 2);
+        if (activeOrders.length === 0) {
+            safeCall("showSuccessMessage", "No active orders to complete!");
+            return;
+        }
+
+        // Keep selections (ids) and context
+        currentOrderData = activeOrders.map((o) => o.id);
+        paymentContext = "table";
+
+        // Reset payment modal UI
+        $(".payment-option").removeClass("selected");
+        $("#confirmPayment").prop("disabled", true);
+        $("#paymentError").removeClass("active");
+        $("#discountInput").val('');
+
+        // Compute subtotal now and bind summary values so modal shows them immediately
+        window.currentModalOrderTotal = computeCurrentSubtotal() || 0;
+        const subtotal = Number(window.currentModalOrderTotal) || 0;
+        const discountAmt = 0;
+        const finalAmount = Math.max(0, subtotal - discountAmt);
+
+        $('#paymentSubtotal').text(`₹${subtotal.toFixed(2)}`);
+        $('#paymentDiscount').text(`₹${discountAmt.toFixed(2)}`);
+        $('#paymentFinal').text(`₹${finalAmount.toFixed(2)}`);
+
+        // Open payment modal
+        // allow the in-progress modal to hide first if present
+        $("#divInProgressModal").modal("hide");
+        setTimeout(() => {
+            $("#paymentModal").addClass("active");
+            const d = document.getElementById("discountInput");
+            if (d) d.focus();
+        }, 250);
     });
 
     // When in-progress modal shows, set button mode
@@ -999,9 +1015,77 @@ $(document).on("click", ".payment-option", function (e) {
 
 $(document).on("click", "#cancelPayment", function () {
     $(discountInput).val('');
+    $('#paymentDiscount').text('₹0.00');
+    $('#paymentSubtotal').text('₹0.00');
+    $('#paymentFinal').text('₹0.00');
+
+    // Reset modal/payment state
+    //window.currentModalOrderTotal = 0;
+    //selectedPaymentMode = null;
+    //currentOrderId = null;
+    //currentOrderData = null;
+    //currentOnlineOrderId = null;
+    //paymentContext = null;
+
+    // Reset UI affordances
+    //$(".payment-option").removeClass("selected");
+    //$("#confirmPayment").prop("disabled", true);
+    //$("#paymentError").removeClass("active");
     closePaymentModal();
 });
+// Bind and update payment summary when user tabs out (blur) or clicks the discount input.
+// Handles absolute rupee values and "NN%" percent entries.
+function updatePaymentSummaryFromDiscountInput() {
+    try {
+        const discountEl = $('#discountInput');
+        if (!discountEl.length) return;
 
+        const subtotal = computeCurrentSubtotal() || 0;
+        let raw = String(discountEl.val() ?? '').trim();
+
+        let discountAmt = 0;
+        if (raw.endsWith('%')) {
+            // percent entry like "10%"
+            const pct = parseFloat(raw.replace('%', '').replace(/[^0-9.\-]/g, '')) || 0;
+            discountAmt = Math.floor(subtotal * (pct / 100));
+        } else {
+            // absolute rupee value, allow "₹" or commas
+            const parsed = parseFloat(raw.replace(/[^\d.\-]/g, ''));
+            discountAmt = isNaN(parsed) ? 0 : parsed;
+        }
+
+        // clamp
+        if (discountAmt < 0) discountAmt = 0;
+        if (discountAmt > subtotal) discountAmt = subtotal;
+
+        // normalize discount input to absolute amount (in rupees)
+        discountEl.val(String(discountAmt));
+
+        // update UI summary elements
+        $('#paymentDiscount').text(`₹${discountAmt.toFixed(2)}`);
+        $('#paymentSubtotal').text(`₹${subtotal.toFixed(2)}`);
+        const finalAmount = Math.max(0, subtotal - discountAmt);
+        $('#paymentFinal').text(`₹${finalAmount.toFixed(2)}`);
+    } catch (e) {
+        console.warn('updatePaymentSummaryFromDiscountInput error', e);
+    }
+}
+
+// Bind events: blur (tab out), Enter key, and click (select on focus)
+$(document).off('blur', '#discountInput').on('blur', '#discountInput', function () {
+    updatePaymentSummaryFromDiscountInput();
+});
+$(document).off('keydown', '#discountInput').on('keydown', '#discountInput', function (e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        $(this).blur();
+    }
+});
+$(document).off('click', '#discountInput').on('click', '#discountInput', function (e) {
+    e.stopPropagation();
+    // select current value for quick replace
+    $(this).select();
+});
 $(document).off("click", "#confirmPayment").on("click", "#confirmPayment", function () {
 
 
@@ -1112,17 +1196,10 @@ function removeOrderByOrderId(orderId) {
 // Robust removal used in online confirm flow
 
 function removeOnlineOrderByOrderId(orderId) {
-
-    debugger
-
     // Try direct removal first
-
     if (removeOrderByOrderId(orderId)) return true;
-
     // Sometimes orderId could be numeric or prefixed; try matching by last part
-
     const key = String(orderId).trim();
-
     const matchedIdx = ordersData.findIndex(o => {
 
         if (!o) return false;
@@ -1231,27 +1308,19 @@ function handleOnlinePaymentConfirm() {
         PaymentMode: mode
 
     };
-    debugger
     if (!confirm("Are you sure you want to complete this order?")) {
 
         return;
 
     }
-    debugger
+
     $("#confirmPayment").prop("disabled", true);
-
     $.ajax({
-
         url: "/home/SaveOrderSummaryOnline",
-
         type: "POST",
-
         contentType: "application/json; charset=utf-8",
-
         data: JSON.stringify(summaryData),
-
         success: function () {
-
             // 5) Update main order status in DB (your existing function)
 
             updateRestaurantOrderStatus(order.orderId, "Delivered");
@@ -1546,16 +1615,72 @@ function acceptOrder(order, callback) {
 // ---- Discount Button Handlers ---- //
 
 function setupDiscountButtons() {
-
     $("#disciount5").click(() => applyPercentageDiscount(5));
     $("#disciount10").click(() => applyPercentageDiscount(10));
     $("#disciount15").click(() => applyPercentageDiscount(15));
 }
 
+// ---- Discount helpers: compute subtotal and bind buttons ---- //
+function computeCurrentSubtotal() {
+    try {
+        // Online order context
+        if (paymentContext === 'online' && currentOnlineOrderId) {
+            const order = (ordersData || []).find(o => String(o.orderId) === String(currentOnlineOrderId));
+            if (!order) return 0;
+            if (!isNaN(Number(order.total)) && Number(order.total) > 0) {
+                return Number(order.total);
+            }
+            if (Array.isArray(order.items)) {
+                return order.items.reduce((s, it) => {
+                    const qty = Number(it.quantity) || ((Number(it.fullPortion) || 0) + (Number(it.halfPortion) || 0));
+                    return s + (Number(it.price || 0) * qty);
+                }, 0);
+            }
+            return 0;
+        }
+
+        // Table context (currentOrderData contains ids or objects)
+        const ids = Array.isArray(currentOrderData) ? currentOrderData.map(x => {
+            if (x && typeof x === 'object') return x.id ?? x.orderId ?? x;
+            return x;
+        }) : [];
+
+        if (ids.length > 0) {
+            const idStrings = ids.map(x => String(x));
+            const orders = (window.liveOrdersData || []).filter(o =>
+                idStrings.some(id => String(o.id) === id || String(o.orderId) === id)
+            );
+            return orders.reduce((sum, item) => {
+                const qty = (Number(item.halfPortion) || 0) + (Number(item.fullPortion) || 0) || (Number(item.quantity) || 0);
+                return sum + qty * (Number(item.price) || 0);
+            }, 0);
+        }
+
+        // Fallback: try window.currentModalOrderTotal if set
+        if (!isNaN(Number(window.currentModalOrderTotal)) && Number(window.currentModalOrderTotal) > 0) {
+            return Number(window.currentModalOrderTotal);
+        }
+
+        return 0;
+    } catch (e) {
+        console.warn('computeCurrentSubtotal error', e);
+        return 0;
+    }
+}
+
 function applyPercentageDiscount(percent) {
+    const subtotal = computeCurrentSubtotal() || 0;
+    const discountamt = Math.floor(subtotal * (Number(percent) / 100)) || 0;
 
+    // Keep canonical subtotal for the modal
+    window.currentModalOrderTotal = subtotal;
 
-
+    // Write values into the UI
+    $('#discountInput').val(discountamt);
+    $('#paymentDiscount').text(`₹${discountamt.toFixed(2)}`);
+    $('#paymentSubtotal').text(`₹${subtotal.toFixed(2)}`);
+    const finalAmount = Math.max(0, subtotal - discountamt);
+    $('#paymentFinal').text(`₹${finalAmount.toFixed(2)}`);
     if (paymentContext === 'online') {
         if (!currentOnlineOrderId) {
             alert("No online order selected!");
@@ -1567,7 +1692,7 @@ function applyPercentageDiscount(percent) {
             alert("Online order not found!");
             return;
         }
-
+        debugger
         const totalAmount = Number(order.total) || 0;
         const discountAmount = Math.floor((totalAmount * percent) / 100);
         $("#discountInput").val(discountAmount);

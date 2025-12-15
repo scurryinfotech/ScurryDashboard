@@ -24,10 +24,13 @@
 
         <div class="collapse navbar-collapse" id="mainNavbar">
             <ul class="navbar-nav ml-auto align-items-center">
-                <li class="nav-item mr-2">
-                    <button id="ManageMenuBtn" class="btn btn-outline-primary btn-lg">Manage menu</button>
+                <li id="manageLink" class="nav-item mr-2">
+                    <a class="btn btn-outline-primary btn-lg" asp-controller="Home" asp-action="ManageMenu">Manage menu</a>
                 </li>
-                <li class="nav-item">
+                <li id="homeLink" class="nav-item mr-2">
+                    <a class="btn btn-outline-primary btn-lg" asp-controller="Home" asp-action="Index">Dashboard</a>
+                </li>
+                <li class="nav-item" id="switchOnOff">
                     <button id="HomeBtn"
                             class="btn btn-lg connect"
                             type="button"

@@ -1,0 +1,1077 @@
+﻿@{
+    ViewData["Title"] = "Manage Menu";
+}
+
+@section styles {
+<style>
+    /* Restaurant / high-tech theme (scoped to this page to avoid overriding global nav styles) */
+    :root {
+        --accent1: #6a5af9;
+        --accent2: #d96ef7;
+        --glass: rgba(255,255,255,0.06);
+        --card-bg: rgba(255,255,255,0.04);
+        --card-border: rgba(255,255,255,0.08);
+        --muted: rgba(255,255,255,0.75);
+    }
+
+    /* Scope page-level body styles to the page wrapper so navbar buttons are unaffected */
+    #manageMenuPage {
+        background: linear-gradient(135deg, #3d3ec9 0%, #7a4bd6 40%, #a44fe0 100%);
+        color: #f3f4f8;
+        min-height: 100vh;
+        font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    #manageMenuPage.container.py-3 {
+        padding-top: 28px;
+        padding-bottom: 28px;
+    }
+
+    /* Top title */
+    #manageMenuPage .page-title {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+        #manageMenuPage .page-title .logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 -6px 18px rgba(255,255,255,0.02);
+            transform: translateZ(0);
+        }
+
+        #manageMenuPage .page-title h1 {
+            margin: 0;
+            color: #fff;
+            font-weight: 600;
+            letter-spacing: .2px;
+        }
+
+        #manageMenuPage .page-title p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.85);
+        }
+
+    /* Card / glass look */
+    #manageMenuPage .card {
+        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+        border: 1px solid var(--card-border);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+        transition: transform 280ms cubic-bezier(.2,.9,.3,1), box-shadow 280ms;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+        #manageMenuPage .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+        }
+
+    #manageMenuPage .card-header {
+        background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+        color: #fff;
+        font-weight: 600;
+    }
+
+    #manageMenuPage .card-body {
+        color: rgba(255,255,255,0.95);
+    }
+
+    /* Table */
+    #manageMenuPage .table thead th {
+        background: transparent !important;
+        color: #fff;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        font-weight: 700;
+    }
+
+    #manageMenuPage .table tbody td {
+        color: rgba(255,255,255,0.95);
+        vertical-align: middle;
+        border-top: 1px solid rgba(255,255,255,0.03);
+    }
+
+    #manageMenuPage .table-responsive {
+        overflow: auto;
+    }
+
+    #manageMenuPage .table tbody tr {
+        transition: background .18s, transform .18s;
+    }
+
+        #manageMenuPage .table tbody tr:hover {
+            background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            transform: translateY(-2px);
+        }
+
+    #manageMenuPage .badge-success {
+        background: #28a745 !important;
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(40,167,69,0.12);
+    }
+
+    /* item thumbnails */
+    #manageMenuPage .img-thumbnail {
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* buttons - scope so global nav buttons keep their intended appearance */
+    #manageMenuPage .btn-primary {
+        background: linear-gradient(90deg, var(--accent1), var(--accent2));
+        border: none;
+        box-shadow: 0 6px 18px rgba(106,90,249,0.18);
+    }
+
+    #manageMenuPage .btn-outline-primary {
+        color: #fff;
+        border-color: rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.02);
+    }
+
+        #manageMenuPage .btn-outline-primary:hover {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+    /* modal custom */
+    #manageMenuPage .modal-content {
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015));
+        border: 1px solid rgba(255,255,255,0.04);
+        color: #fff;
+    }
+
+    #manageMenuPage .modal-header.bg-primary {
+        background: linear-gradient(90deg, var(--accent1), var(--accent2)) !important;
+    }
+
+    /* neon accent lines */
+    #manageMenuPage .neon-accent {
+        position: relative;
+    }
+
+        #manageMenuPage .neon-accent::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: -18px;
+            height: 6px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+            filter: blur(6px);
+            opacity: 0.9;
+            border-radius: 6px;
+        }
+
+    /* responsive smaller screens */
+    @@media (max-width: 991px) {
+        #manageMenuPage .card {
+            margin-bottom: 16px;
+        }
+    }
+</style>
+}
+
+<div class="container py-3" id="manageMenuPage">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Manage Menu</h1>
+    </div>
+
+    <!-- Table count - editable (now a card with header like other sections) -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Table Count</strong>
+                    <button id="editTableCountBtn" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#editTableCountModal">
+                        Edit
+                    </button>
+                </div>
+                <div class="card-body p-3">
+                    <div class="text-muted small">Current</div>
+                    <h4 id="tableCount">-</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories, Subcategories, Items -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Categories</strong>
+                    <button class="btn btn-sm btn-primary" id="btnAddCategory" data-toggle="modal" data-target="#categoryModal">Add New</button>
+                </div>
+                <div class="card-body p-2">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0" id="categoryTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:1px">ID</th>
+                                    <th>Category</th>
+                                    <th>Active</th>
+                                    <th style="width:1px">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <!-- pagination -->
+                    <nav class="mt-2">
+                        <ul id="categoryPager" class="pagination pagination-sm mb-0"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Subcategories</strong>
+                    <button class="btn btn-sm btn-primary" id="btnAddSubcategory" data-toggle="modal" data-target="#subcategoryModal">Add New</button>
+                </div>
+                <div class="card-body p-2">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0" id="subcategoryTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:1px">ID</th>
+                                    <th>Category</th>
+                                    <th>Subcategory</th>
+                                    <th>Active</th>
+                                    <th style="width:1px">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <!-- pagination -->
+                    <nav class="mt-2">
+                        <ul id="subcategoryPager" class="pagination pagination-sm mb-0"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Menu Items</strong>
+                    <button class="btn btn-sm btn-primary" id="btnAddItem" data-toggle="modal" data-target="#itemModal">Add New</button>
+                </div>
+                <div class="card-body p-2">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0" id="itemTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:60px">ID</th>
+                                    <th style="width:80px">Image</th>
+                                    <th>Item</th>
+                                    <th>Category</th>
+                                    <th>Subcategory</th>
+                                    <th style="width:110px">Full Price</th>
+                                    <th style="width:110px">Half Price</th>
+                                    <th>Active</th>
+                                    <th style="width:1px">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <!-- pagination -->
+                    <nav class="mt-2">
+                        <ul id="itemPager" class="pagination pagination-sm mb-0"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Category Modal (Bootstrap 4 close button/data-dismiss) -->
+    <div class="modal fade" id="categoryModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="categoryForm" class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 id="categoryModalTitle" class="modal-title">Add Category</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="categoryId" />
+                    <div class="form-group">
+                        <label for="categoryName">Category Name</label>
+                        <input id="categoryName" class="form-control" required />
+                    </div>
+                    <div class="form-check">
+                        <input id="categoryIsActive" type="checkbox" class="form-check-input" checked />
+                        <label class="form-check-label" for="categoryIsActive">Is Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" type="submit">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Subcategory Modal -->
+    <div class="modal fade" id="subcategoryModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="subcategoryForm" class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 id="subcategoryModalTitle" class="modal-title">Add Subcategory</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="subcategoryId" />
+                    <div class="form-group">
+                        <label for="subcategoryCategoryId">Category</label>
+                        <select id="subcategoryCategoryId" class="form-control" required>
+                            <option value="">Select category</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="subcategoryName">Subcategory Name</label>
+                        <input id="subcategoryName" class="form-control" required />
+                    </div>
+                    <div class="form-check">
+                        <input id="subcategoryIsActive" type="checkbox" class="form-check-input" checked />
+                        <label class="form-check-label" for="subcategoryIsActive">Is Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" type="submit">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Item Modal (fixed layout for Bootstrap 4, includes full/half price inputs) -->
+    <div class="modal fade" id="itemModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <form id="itemForm" class="modal-content" enctype="multipart/form-data">
+                <div class="modal-header bg-primary text-white">
+                    <h5 id="itemModalTitle" class="modal-title">Add Menu Item</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="itemId" />
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="itemCategoryId">Category</label>
+                            <select id="itemCategoryId" class="form-control" required>
+                                <option value="">Select category</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group col-md-6">
+                            <label for="itemSubcategoryId">Subcategory</label>
+                            <select id="itemSubcategoryId" class="form-control" required>
+                                <option value="">Select subcategory</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group col-md-6">
+                            <label for="itemTitle">Item Title</label>
+                            <input id="itemTitle" class="form-control" required />
+                        </div>
+
+                        <div class="form-group col-md-3">
+                            <label for="itemFullPrice">Full Price</label>
+                            <input id="itemFullPrice" class="form-control" type="number" min="0" step="0.01" />
+                        </div>
+
+                        <div class="form-group col-md-3">
+                            <label for="itemHalfPrice">Half Price</label>
+                            <input id="itemHalfPrice" class="form-control" type="number" min="0" step="0.01" />
+                        </div>
+
+                        <div class="form-group col-12">
+                            <label for="itemDescription">Description</label>
+                            <textarea id="itemDescription" class="form-control" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-group col-md-6">
+                            <label for="itemImage">Image</label>
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input" id="itemImage" accept="image/*">
+                                <label class="custom-file-label" for="itemImage">Choose file</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group col-md-6 d-flex align-items-center">
+                            <img id="itemImagePreview" src="" alt="Preview" class="img-thumbnail" style="max-height:120px; display:none;" />
+                        </div>
+
+                        <div class="form-group col-12">
+                            <div class="form-check">
+                                <input id="itemIsActive" type="checkbox" class="form-check-input" checked />
+                                <label class="form-check-label" for="itemIsActive">Is Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" type="submit">Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Table Count Modal (Bootstrap 4) -->
+    <div class="modal fade" id="editTableCountModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <form id="editTableCountForm" class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 id="editTableCountModalTitle" class="modal-title">Edit Table Count</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="tableCountInput">Number of tables</label>
+                        <input id="tableCountInput" class="form-control" type="number" min="1" step="1" required />
+                    </div>
+                    <div id="tableCountError" class="text-danger small" style="display:none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="cancelTableCountBtn" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" id="saveTableCountBtn" class="btn btn-success">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+            const PAGE_SIZE = 7;
+
+            // caches for paging
+            let categoriesData = [];
+            let subcategoriesData = [];
+            let itemsData = [];
+
+            // master subcategory options HTML (so filtering always uses full list)
+            let masterSubcategoryOptionsHtml = '';
+
+            // current pages
+            let categoryPage = 1;
+            let subcategoryPage = 1;
+            let itemPage = 1;
+
+        $(document).ready(function () {
+                debugger
+                $('#switchOnOff').hide();
+                $('#manageLink').hide();
+                $('#homeLink').show();
+
+                // wire add-buttons to set modal titles and clear forms
+                $('#btnAddCategory').on('click', function () {
+                    $('#categoryModalTitle').text('Add Category');
+                    $('#categoryForm')[0]?.reset();
+                    $('#categoryId').val('');
+                });
+                $('#btnAddSubcategory').on('click', function () {
+                    $('#subcategoryModalTitle').text('Add Subcategory');
+                    $('#subcategoryForm')[0]?.reset();
+                    $('#subcategoryId').val('');
+                });
+                $('#btnAddItem').on('click', function () {
+                    $('#itemModalTitle').text('Add Menu Item');
+                    $('#itemForm')[0]?.reset();
+                    $('#itemId').val('');
+                    // ensure category & subcategory selects are populated
+                    populateCategorySelects();
+                    populateSubcategorySelect();
+                    // show subcategories for no category (all)
+                    loadSubcategoriesForCategory('', null);
+                    $('#itemCategoryId').val('');
+                    $('#itemSubcategoryId').val('');
+                    // reset custom-file label and preview
+                    $('.custom-file-label[for="itemImage"]').text('Choose file');
+                    $('#itemImagePreview').hide().attr('src', '');
+                    $('#itemFullPrice').val('');
+                    $('#itemHalfPrice').val('');
+                });
+
+                // when category in item modal changes, filter subcategory list
+                $(document).on('change', '#itemCategoryId', function () {
+                    const catId = $(this).val();
+                    loadSubcategoriesForCategory(catId, null);
+                    // clear selected subcategory when category changes
+                    $('#itemSubcategoryId').val('');
+                });
+
+                // initial load of all data (categories/items)
+                loadAll();
+
+                // load current table count
+                loadTableCount();
+
+                // open modal and prefill value
+                $('#editTableCountBtn').on('click', function () {
+                    const current = parseInt($('#tableCount').text(), 10);
+                    $('#tableCountInput').val(!isNaN(current) && current > 0 ? current : 1);
+                    $('#tableCountError').hide().text('');
+                });
+
+                // save new table count
+                $('#editTableCountForm').on('submit', function (e) {
+                    e.preventDefault();
+                    $('#tableCountError').hide().text('');
+                    let value = parseInt($('#tableCountInput').val(), 10);
+                    if (isNaN(value) || value < 1) {
+                        $('#tableCountError').show().text('Please enter a valid number (>= 1).');
+                        return;
+                    }
+
+                    $('#saveTableCountBtn').prop('disabled', true).text('Saving...');
+                    $.ajax({
+                        url: '/Home/SaveTableCount',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(value),
+                        success: function () {
+                            $('#tableCount').text(value);
+                            $('#editTableCountModal').modal('hide');
+
+                            // update arrTable used by rest of app
+                            if (typeof bindDynamicTable === 'function') {
+                                arrTable = Array.from({ length: value }, (_, i) => i + 1);
+                                bindDynamicTable();
+                            }
+                        },
+                        error: function (xhr) {
+                            const msg = xhr.responseText || 'Failed to save table count';
+                            $('#tableCountError').show().text(msg);
+                        },
+                        complete: function () {
+                            $('#saveTableCountBtn').prop('disabled', false).text('Save');
+                        }
+                    });
+                });
+
+                // file preview for item image: update custom-file label and preview
+                $(document).on('change', '#itemImage', function () {
+                    const f = this.files && this.files[0];
+                    const $label = $(this).siblings('.custom-file-label');
+                    if (f) {
+                        $label.text(f.name);
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            $('#itemImagePreview').attr('src', e.target.result).show();
+                        };
+                        reader.readAsDataURL(f);
+                    } else {
+                        $label.text('Choose file');
+                        $('#itemImagePreview').hide().attr('src', '');
+                    }
+                });
+
+                // Reset modals on hide
+                $('.modal').on('hidden.bs.modal', function () {
+                    $(this).find('form')[0]?.reset();
+                    $(this).find('input[type="hidden"]').val('');
+                    $('#itemImagePreview').hide().attr('src', '');
+                    // reset custom-file label
+                    $(this).find('.custom-file-label').text('Choose file');
+                    // repopulate selects when needed (ensure latest data)
+                    populateCategorySelects();
+                    populateSubcategorySelect();
+                });
+
+                // forms (category/subcategory/item)
+                bindFormHandlers();
+            });
+
+            function bindFormHandlers() {
+                $('#categoryForm').off('submit').on('submit', function (e) {
+                    e.preventDefault();
+                    const id = $('#categoryId').val();
+                    const payload = {
+                        CategoryId: id || 0,
+                        CategoryName: $('#categoryName').val(),
+                        IsActive: $('#categoryIsActive').is(':checked')
+                    };
+                    const url = id ? `/Home/SaveMenuCategory?id=${id}` : '/Home/SaveMenuCategory';
+                    $.ajax({
+                        url,
+                        method: id ? 'PUT' : 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(payload),
+                        success: function () {
+                            $('#categoryModal').modal('hide');
+                            loadMenuCategories();
+                            loadMenuSubcategories();
+                        },
+                        error: function () { alert('Failed to save category'); }
+                    });
+                });
+
+                $('#subcategoryForm').off('submit').on('submit', function (e) {
+                    e.preventDefault();
+                    const id = $('#subcategoryId').val();
+                    const payload = {
+                        SubcategoryId: id || 0,
+                        CategoryId: $('#subcategoryCategoryId').val(),
+                        SubcategoryName: $('#subcategoryName').val(),
+                        IsActive: $('#subcategoryIsActive').is(':checked')
+                    };
+                    const url = id ? `/Home/SaveMenuSubcategory?id=${id}` : '/Home/SaveMenuSubcategory';
+                    $.ajax({
+                        url,
+                        method: id ? 'PUT' : 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(payload),
+                        success: function () {
+                            $('#subcategoryModal').modal('hide');
+                            loadMenuSubcategories();
+                            loadMenuItems();
+                        },
+                        error: function () { alert('Failed to save subcategory'); }
+                    });
+                });
+
+                $('#itemForm').off('submit').on('submit', function (e) {
+                    e.preventDefault();
+                    const id = $('#itemId').val();
+                    const fm = new FormData();
+                    fm.append('ItemId', id || 0);
+                    fm.append('CategoryId', $('#itemCategoryId').val());
+                    fm.append('SubcategoryId', $('#itemSubcategoryId').val());
+                    fm.append('ItemName', $('#itemTitle').val());
+                    fm.append('Description', $('#itemDescription').val());
+                    // append both DB price fields (price1 = full, price2 = half)
+                    fm.append('price1', $('#itemFullPrice').val() || 0);
+                    fm.append('price2', $('#itemHalfPrice').val() || 0);
+                    fm.append('IsActive', $('#itemIsActive').is(':checked'));
+                    const file = $('#itemImage')[0].files[0];
+                    if (file) fm.append('image', file);
+
+                    const url = id ? `/Home/SaveMenuItem?id=${id}` : '/Home/SaveMenuItem';
+                    $.ajax({
+                        url,
+                        method: id ? 'PUT' : 'POST',
+                        data: fm,
+                        contentType: false,
+                        processData: false,
+                        success: function () {
+                            $('#itemModal').modal('hide');
+                            loadMenuItems();
+                        },
+                        error: function () { alert('Failed to save item'); }
+                    });
+                });
+
+                // delegated click handlers for edit buttons (works after render)
+                $('#categoryTable').off('click', '.edit-category').on('click', '.edit-category', function () {
+                    const id = $(this).data('id');
+                    const found = categoriesData.find(x => String(x.categoryId ?? x.CategoryId) === String(id));
+                    if (!found) { alert('Category not found'); return; }
+                    $('#categoryId').val(found.categoryId ?? found.CategoryId);
+                    $('#categoryName').val(found.categoryName ?? found.CategoryName);
+                    $('#categoryIsActive').prop('checked', !!(found.isActive ?? found.IsActive));
+                    $('#categoryModalTitle').text('Edit Category');
+                    $('#categoryModal').modal('show');
+                });
+
+                $('#subcategoryTable').off('click', '.edit-subcategory').on('click', '.edit-subcategory', function () {
+                    const id = $(this).data('id');
+                    const found = subcategoriesData.find(x => String(x.subcategoryId ?? x.SubcategoryId) === String(id));
+                    if (!found) { alert('Subcategory not found'); return; }
+                    $('#subcategoryId').val(found.subcategoryId ?? found.SubcategoryId);
+                    $('#subcategoryName').val(found.subcategoryName ?? found.SubcategoryName);
+                    $('#subcategoryIsActive').prop('checked', !!(found.isActive ?? found.IsActive));
+                    // ensure category select has values then set it
+                    populateCategorySelects();
+                    $('#subcategoryCategoryId').val(found.categoryId ?? found.CategoryId);
+                    $('#subcategoryModalTitle').text('Edit Subcategory');
+                    $('#subcategoryModal').modal('show');
+                });
+
+                $('#itemTable').off('click', '.edit-item').on('click', '.edit-item', function () {
+                    const id = $(this).data('id');
+                    const found = itemsData.find(x => String(x.itemId ?? x.ItemId) === String(id));
+                    if (!found) { alert('Item not found'); return; }
+
+                    $('#itemId').val(found.itemId ?? found.ItemId);
+                    $('#itemTitle').val(found.itemName ?? found.ItemName ?? found.title ?? found.Title);
+                    $('#itemDescription').val(found.description ?? found.Description);
+                    // set both prices (full / half)
+                    $('#itemFullPrice').val(found.price1 ?? found.Price1 ?? found.fullPrice ?? '');
+                    $('#itemHalfPrice').val(found.price2 ?? found.Price2 ?? found.halfPrice ?? '');
+                    $('#itemIsActive').prop('checked', !!(found.isActive ?? found.IsActive));
+
+                    // subcategory id present on item (per your note)
+                    const subId = found.subcategoryId ?? found.SubcategoryId ?? found.subcategory_id ?? null;
+
+                    // find subcategory object (so we can derive its name and its categoryId)
+                    const subObj = subcategoriesData.find(s => String(s.subcategoryId ?? s.SubcategoryId) === String(subId));
+
+                    // derive category id: prefer item.categoryId if present, otherwise use subObj.categoryId
+                    const catIdFromItem = found.categoryId ?? found.CategoryId ?? found.category_id ?? null;
+                    const derivedCatId = (catIdFromItem !== undefined && catIdFromItem !== null && String(catIdFromItem) !== '')
+                        ? String(catIdFromItem)
+                        : (subObj ? String(subObj.categoryId ?? subObj.CategoryId ?? '') : '');
+
+                    // ensure selects are populated
+                    populateCategorySelects();
+                    populateSubcategorySelect();
+
+                    // set category select, then filter subcategories and set subcategory select
+                    $('#itemCategoryId').val(derivedCatId || '');
+                    loadSubcategoriesForCategory(derivedCatId, function () {
+                        $('#itemSubcategoryId').val(subId == null ? '' : String(subId));
+                    });
+
+                    // show image in modal preview if imageSrc / imageUrl / imageData available
+                    if (found.imageSrc) {
+                        const src = normalizeImageSrc(found.imageSrc);
+                        $('#itemImagePreview').attr('src', src).show();
+                        $('.custom-file-label[for="itemImage"]').text(found.fileName ?? 'Image');
+                    } else if (found.imageData && found.fileName) {
+                        const mime = getMimeFromName(found.fileName);
+                        $('#itemImagePreview').attr('src', `data:${mime};base64,${found.imageData}`).show();
+                        $('.custom-file-label[for="itemImage"]').text(found.fileName);
+                    } else if (found.imageUrl) {
+                        $('#itemImagePreview').attr('src', found.imageUrl).show();
+                        $('.custom-file-label[for="itemImage"]').text(found.fileName ?? 'Image');
+                    } else {
+                        $('#itemImagePreview').hide().attr('src', '');
+                        $('.custom-file-label[for="itemImage"]').text('Choose file');
+                    }
+
+                    $('#itemModalTitle').text('Edit Item');
+                    $('#itemModal').modal('show');
+                });
+            }
+
+            // ----- Loading and rendering with pagination -----
+            function loadAll() {
+                loadTableCount();
+                loadMenuCategories();
+                loadMenuSubcategories();
+                loadMenuItems();
+            }
+
+            function loadTableCount() {
+                $.ajax({
+                    url: '/Home/GetTableCount',
+                    type: 'GET',
+                    success: function (data) {
+                        let count = data;
+                        if (typeof data === 'object' && data !== null) {
+                            count = data.count ?? data.TableCount ?? data;
+                        }
+                        const n = parseInt(count, 10);
+                        $('#tableCount').text(!isNaN(n) ? n : count);
+                        if (!isNaN(n) && typeof bindDynamicTable === 'function') {
+                            arrTable = Array.from({ length: n }, (_, i) => i + 1);
+                            bindDynamicTable();
+                        }
+                    },
+                    error: function () {
+                        $('#tableCount').text('N/A');
+                    }
+                });
+            }
+
+            function loadMenuCategories() {
+                $.ajax({
+                    url: '/Home/GetMenuCategory',
+                    type: 'GET',
+                    success: function (data) {
+                        categoriesData = data || [];
+                        categoryPage = 1;
+                        renderCategoryPage(categoryPage);
+                        // also repopulate selects used by other forms
+                        populateCategorySelects();
+                    },
+                    error: function () {
+                        alert('Failed to load categories');
+                    }
+                });
+            }
+
+            function renderCategoryPage(page) {
+                const rows = $('#categoryTable tbody');
+                rows.empty();
+                const total = categoriesData.length;
+                const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+                page = Math.min(Math.max(1, page), totalPages);
+                categoryPage = page;
+                const start = (page - 1) * PAGE_SIZE;
+                const slice = categoriesData.slice(start, start + PAGE_SIZE);
+                slice.forEach(cat => {
+                    const id = cat.categoryId ?? cat.CategoryId;
+                    const name = cat.categoryName ?? cat.CategoryName;
+                    const active = !!(cat.isActive ?? cat.IsActive);
+                    rows.append(`<tr>
+                        <td>${id}</td>
+                        <td>${escapeHtml(name)}</td>
+                        <td>${active ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-secondary">No</span>'}</td>
+                        <td><button class="btn btn-sm btn-outline-primary edit-category" data-id="${id}">Edit</button></td>
+                    </tr>`);
+                });
+                renderPager('#categoryPager', total, PAGE_SIZE, page, (p) => renderCategoryPage(p));
+            }
+
+            function loadMenuSubcategories() {
+                $.ajax({
+                    url: '/Home/GetMenuSubcategory',
+                    type: 'GET',
+                    success: function (data) {
+                        subcategoriesData = data || [];
+                        subcategoryPage = 1;
+                        renderSubcategoryPage(subcategoryPage);
+                        populateSubcategorySelect(); // populates item subcategory options for filtering
+                    },
+                    error: function () {
+                        alert('Failed to load subcategories');
+                    }
+                });
+            }
+
+            function renderSubcategoryPage(page) {
+                const rows = $('#subcategoryTable tbody');
+                rows.empty();
+                const total = subcategoriesData.length;
+                const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+                page = Math.min(Math.max(1, page), totalPages);
+                subcategoryPage = page;
+                const start = (page - 1) * PAGE_SIZE;
+                const slice = subcategoriesData.slice(start, start + PAGE_SIZE);
+                slice.forEach(sc => {
+                    const id = sc.subcategoryId ?? sc.SubcategoryId;
+                    const name = sc.subcategoryName ?? sc.SubcategoryName ?? '';
+                    const catId = sc.categoryId ?? sc.CategoryId;
+                    const active = !!(sc.isActive ?? sc.IsActive);
+
+                    // lookup category name from categoriesData if not provided by server
+                    let catName = sc.categoryName ?? sc.CategoryName ?? '';
+                    if (!catName && (catId !== undefined && catId !== null && String(catId) !== '')) {
+                        const foundCat = categoriesData.find(c => String(c.categoryId ?? c.CategoryId) === String(catId));
+                        catName = foundCat ? (foundCat.categoryName ?? foundCat.CategoryName ?? '') : String(catId);
+                    }
+
+                    rows.append(`<tr>
+                        <td>${id}</td>
+                        <td>${escapeHtml(catName)}</td>
+                        <td>${escapeHtml(name)}</td>
+                        <td>${active ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-secondary">No</span>'}</td>
+                        <td><button class="btn btn-sm btn-outline-primary edit-subcategory" data-id="${id}">Edit</button></td>
+                    </tr>`);
+                });
+                renderPager('#subcategoryPager', total, PAGE_SIZE, page, (p) => renderSubcategoryPage(p));
+            }
+
+            function loadMenuItems() {
+                $.ajax({
+                    url: '/Home/GetMenuItem',
+                    type: 'GET',
+                    success: function (data) {
+                        itemsData = data || [];
+                        itemPage = 1;
+                        renderItemPage(itemPage);
+                    },
+                    error: function () {
+                        alert('Failed to load items');
+                    }
+                });
+            }
+
+            // helper: create <img /> HTML from returned image fields (imageSrc, imageUrl, imageData+fileName)
+            function normalizeImageSrc(src) {
+                if (!src) return '';
+                if (/^data:/.test(src)) return src; // already data URI
+                // some servers return raw base64 (JPEG base64 often starts with '/9j/')
+                if (/^(?:\/9j|[A-Za-z0-9+/]+\={0,2})$/.test(src) || src.length > 100 && /^[A-Za-z0-9+/=]+$/.test(src)) {
+                    // assume jpeg when raw base64 present
+                    return `data:image/jpeg;base64,${src}`;
+                }
+                // otherwise treat as URL/path
+                return src;
+            }
+
+            function renderItemPage(page) {
+                const rows = $('#itemTable tbody');
+                rows.empty();
+                const total = itemsData.length;
+                const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+                page = Math.min(Math.max(1, page), totalPages);
+                itemPage = page;
+                const start = (page - 1) * PAGE_SIZE;
+                const slice = itemsData.slice(start, start + PAGE_SIZE);
+                slice.forEach(it => {
+                    const id = it.itemId ?? it.ItemId;
+                    const title = it.itemName ?? it.ItemName ?? it.title ?? it.Title;
+                    const full = Number(it.price1 ?? it.Price1 ?? it.price ?? it.priceFull ?? 0) || 0;
+                    const half = Number(it.price2 ?? it.Price2 ?? it.halfPrice ?? 0) || 0;
+                    // item may not include categoryId but does include subcategoryId (per your note)
+                    const subId = it.subcategoryId ?? it.SubcategoryId ?? it.subcategory_id ?? null;
+                    let imgHtml = '';
+                    // prefer fully-qualified binary/data/url fields
+                    if (it.imageData && it.fileName) {
+                        const mime = getMimeFromName(it.fileName);
+                        imgHtml = `<img src="data:${mime};base64,${it.imageData}" style="max-height:60px;" class="img-thumbnail" />`;
+                    } else if (it.imageUrl) {
+                        imgHtml = `<img src="${it.imageUrl}" style="max-height:60px;" class="img-thumbnail" />`;
+                    } else if (it.imageSrc) {
+                        const src = normalizeImageSrc(it.imageSrc);
+                        imgHtml = `<img src="${src}" style="max-height:60px;" class="img-thumbnail" />`;
+                    } else {
+                        imgHtml = `<div class="text-muted small">No image</div>`;
+                    }
+
+                    // Resolve subcategory name from subcategoriesData
+                    let subText = it.subcategoryName ?? it.SubcategoryName ?? '';
+                    let resolvedCatId = it.categoryId ?? it.CategoryId ?? it.category_id ?? null;
+                    if (!subText && subId) {
+                        const foundSub = subcategoriesData.find(s => String(s.subcategoryId ?? s.SubcategoryId) === String(subId));
+                        if (foundSub) {
+                            subText = foundSub.subcategoryName ?? foundSub.SubcategoryName ?? '';
+                            // if item didn't include category, derive from subcategory record
+                            if (!resolvedCatId) resolvedCatId = foundSub.categoryId ?? foundSub.CategoryId ?? null;
+                        }
+                    }
+
+                    // Resolve category name from categoriesData using resolvedCatId
+                    let catText = it.categoryName ?? it.CategoryName ?? '';
+                    if (!catText && (resolvedCatId !== undefined && resolvedCatId !== null && String(resolvedCatId) !== '')) {
+                        const foundCat = categoriesData.find(c => String(c.categoryId ?? c.CategoryId) === String(resolvedCatId));
+                        catText = foundCat ? (foundCat.categoryName ?? foundCat.CategoryName ?? '') : String(resolvedCatId);
+                    }
+
+                    const active = !!(it.isActive ?? it.IsActive);
+
+                    rows.append(`<tr>
+                        <td>${id}</td>
+                        <td style="width:80px">${imgHtml}</td>
+                        <td>${escapeHtml(title)}</td>
+                        <td>${escapeHtml(catText)}</td>
+                        <td>${escapeHtml(subText)}</td>
+                        <td>₹${full.toFixed(2)}</td>
+                        <td>₹${half.toFixed(2)}</td>
+                        <td>${active ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-secondary">No</span>'}</td>
+                        <td><button class="btn btn-sm btn-outline-primary edit-item" data-id="${id}">Edit</button></td>
+                    </tr>`);
+                });
+                renderPager('#itemPager', total, PAGE_SIZE, page, (p) => renderItemPage(p));
+            }
+
+            // generic pager renderer
+            function renderPager(containerSelector, totalItems, pageSize, currentPage, onPage) {
+                const $c = $(containerSelector);
+                $c.empty();
+                const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+                // prev
+                $c.append(`<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage - 1}">Prev</a></li>`);
+                // pages (show up to 5 page buttons with current centered when possible)
+                const maxButtons = 5;
+                let start = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+                let end = Math.min(totalPages, start + maxButtons - 1);
+                if (end - start < maxButtons - 1) start = Math.max(1, end - maxButtons + 1);
+                for (let p = start; p <= end; p++) {
+                    $c.append(`<li class="page-item ${p === currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${p}">${p}</a></li>`);
+                }
+                // next
+                $c.append(`<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage + 1}">Next</a></li>`);
+
+                $c.off('click').on('click', 'a.page-link', function (ev) {
+                    ev.preventDefault();
+                    const p = parseInt($(this).data('page'), 10);
+                    if (!isNaN(p) && p >= 1 && p <= totalPages) onPage(p);
+                });
+            }
+
+            function populateCategorySelects() {
+                const select1 = $('#subcategoryCategoryId');
+                const select2 = $('#itemCategoryId');
+                select1.empty().append('<option value="">Select category</option>');
+                select2.empty().append('<option value="">Select category</option>');
+                categoriesData.forEach(cat => {
+                    const id = cat.categoryId ?? cat.CategoryId;
+                    const name = cat.categoryName ?? cat.CategoryName ?? '';
+                    select1.append(`<option value="${id}">${escapeHtml(name)}</option>`);
+                    select2.append(`<option value="${id}">${escapeHtml(name)}</option>`);
+                });
+            }
+
+            function populateSubcategorySelect() {
+                // used when building item subcategory options
+                const select = $('#itemSubcategoryId');
+                // stash a complete list as HTML so we can always rebuild filtered view
+                masterSubcategoryOptionsHtml = '<option value="">Select subcategory</option>';
+                subcategoriesData.forEach(sc => {
+                    const id = String(sc.subcategoryId ?? sc.SubcategoryId ?? '');
+                    const name = sc.subcategoryName ?? sc.SubcategoryName ?? '';
+                    const catId = String(sc.categoryId ?? sc.CategoryId ?? '');
+                    masterSubcategoryOptionsHtml += `<option data-cat="${catId}" value="${id}">${escapeHtml(name)}</option>`;
+                });
+                // populate the select with full list
+                select.empty().append(masterSubcategoryOptionsHtml);
+            }
+
+            function loadSubcategoriesForCategory(categoryId, cb) {
+                // rebuild list from master HTML (avoids chaining filtered lists)
+                const $wrapper = $('<select>').html(masterSubcategoryOptionsHtml);
+                const $allOpts = $wrapper.find('option[data-cat]');
+                const $target = $('#itemSubcategoryId');
+                $target.empty().append('<option value="">Select subcategory</option>');
+                $allOpts.each(function () {
+                    if (!categoryId || String($(this).data('cat')) === String(categoryId)) {
+                        $target.append($(this).clone());
+                    }
+                });
+                if (typeof cb === 'function') cb();
+            }
+
+            // Helpers
+            function escapeHtml(s) {
+                if (s === undefined || s === null) return '';
+                return String(s).replace(/[&<>"'`]/g, function (m) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' })[m]; });
+            }
+
+            function getMimeFromName(name) {
+                if (!name) return 'application/octet-stream';
+                const ext = name.split('.').pop().toLowerCase();
+                switch (ext) {
+                    case 'jpg':
+                    case 'jpeg': return 'image/jpeg';
+                    case 'png': return 'image/png';
+                    case 'gif': return 'image/gif';
+                    case 'webp': return 'image/webp';
+                    default: return 'application/octet-stream';
+                }
+            }
+
+            // expose a limited API for other code (optional)
+            window.menuManagement = {
+                reload: loadAll
+            };
+    </script>
+}

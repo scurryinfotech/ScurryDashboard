@@ -5,6 +5,8 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using System.Net.Http.Headers;
 
 namespace ScurryDashboard.Controllers
 {
@@ -62,11 +64,11 @@ namespace ScurryDashboard.Controllers
         {
             var client = _httpClientFactory.CreateClient();
             var apiUrl = apiPort + "/api/Order/GetAvailabilityOnline";//?UserName=" + userName
-            
+
             string jwtToken = token;
             client.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
-           
+
             try
             {
                 var response = await client.GetAsync(apiUrl);
@@ -84,30 +86,6 @@ namespace ScurryDashboard.Controllers
             {
                 _logger.LogError(ex, "Error calling GetAvailabilityHomeDelivery API");
                 return StatusCode(500, "Error calling GetAvailabilityHomeDelivery API");
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetTableCount()
-        {
-            var client = _httpClientFactory.CreateClient();
-            var apiUrl = apiPort + "/api/Order/GetTableCount?UserName=" + userName;
-            string jwtToken = token;
-
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
-
-            try
-            {
-                var response = await client.GetAsync(apiUrl);
-                response.EnsureSuccessStatusCode();
-                var rawJson = await response.Content.ReadAsStringAsync();
-
-                return Content(rawJson, "application/json");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error calling GetTableCount API");
-                return StatusCode(500, "Error calling GetTableCount API");
             }
         }
 
@@ -251,7 +229,7 @@ namespace ScurryDashboard.Controllers
         {
             var client = _httpClientFactory.CreateClient();
             var response = await client.GetAsync(
-                apiPort + "/api/Order/GetBillByOrderId?orderId="+ orderId
+                apiPort + "/api/Order/GetBillByOrderId?orderId=" + orderId
             );
 
             string json = await response.Content.ReadAsStringAsync();
@@ -347,7 +325,7 @@ namespace ScurryDashboard.Controllers
             return View();
         }
 
-        public IActionResult Privacy()
+        public IActionResult ManageMenu()
         {
             return View();
         }
@@ -604,6 +582,341 @@ namespace ScurryDashboard.Controllers
                 return Ok();
             return StatusCode((int)response.StatusCode, "Failed to update coffee order");
         }
+        #endregion
+
+        #region get menu items
+        [HttpGet]
+        public async Task<IActionResult> GetTableCount()
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/GetTableCount?UserName=" + userName;
+            string jwtToken = token;
+
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+
+            try
+            {
+                var response = await client.GetAsync(apiUrl);
+                response.EnsureSuccessStatusCode();
+                var rawJson = await response.Content.ReadAsStringAsync();
+
+                return Content(rawJson, "application/json");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling GetTableCount API");
+                return StatusCode(500, "Error calling GetTableCount API");
+            }
+        }
+
+        // New: Menu endpoints to fetch categories, subcategories and items from API
+        [HttpGet]
+        public async Task<IActionResult> GetMenuCategory()
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/GetMenuCategory?UserName=" + userName;
+            string jwtToken = token;
+
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+
+            try
+            {
+                var response = await client.GetAsync(apiUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"GetMenuCategory API Error: {response.StatusCode} - {error}");
+                    return StatusCode((int)response.StatusCode, error);
+                }
+
+                var rawJson = await response.Content.ReadAsStringAsync();
+                // Return raw JSON so client-side JS can parse it without requiring model types here
+                return Content(rawJson, "application/json");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling GetMenuCategory API");
+                return StatusCode(500, "Error calling GetMenuCategory API");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMenuSubcategory()
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/GetMenuSubcategory?UserName=" + userName;
+            string jwtToken = token;
+
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+
+            try
+            {
+                var response = await client.GetAsync(apiUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"GetMenuSubcategory API Error: {response.StatusCode} - {error}");
+                    return StatusCode((int)response.StatusCode, error);
+                }
+
+                var rawJson = await response.Content.ReadAsStringAsync();
+                return Content(rawJson, "application/json");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling GetMenuSubcategory API");
+                return StatusCode(500, "Error calling GetMenuSubcategory API");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMenuItem()
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/GetMenuItem?UserName=" + userName;
+            string jwtToken = token;
+
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+
+            try
+            {
+                var response = await client.GetAsync(apiUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"GetMenuItem API Error: {response.StatusCode} - {error}");
+                    return StatusCode((int)response.StatusCode, error);
+                }
+
+                var rawJson = await response.Content.ReadAsStringAsync();
+                return Content(rawJson, "application/json");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling GetMenuItem API");
+                return StatusCode(500, "Error calling GetMenuItem API");
+            }
+        }
+
+        #endregion
+
+        #region manage menu items
+
+        // Save (create) category
+        [HttpPost]
+        public async Task<IActionResult> SaveMenuCategory([FromBody] JsonElement payload)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/SaveMenuCategory?UserName=" + userName;
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            try
+            {
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(apiUrl, content);
+
+                var body = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode) return Ok(body);
+                return StatusCode((int)response.StatusCode, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling SaveMenuCategory API");
+                return StatusCode(500, "Error calling SaveMenuCategory API");
+            }
+        }
+
+        // Update category
+        [HttpPut]
+        public async Task<IActionResult> SaveMenuCategory(int id, [FromBody] JsonElement payload)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/UpdateMenuCategory?UserName=" + userName + "&id=" + id;
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            try
+            {
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(apiUrl, content); // using POST to backend update endpoint, adjust if backend expects PUT
+
+                var body = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode) return Ok(body);
+                return StatusCode((int)response.StatusCode, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling UpdateMenuCategory API");
+                return StatusCode(500, "Error calling UpdateMenuCategory API");
+            }
+        }
+
+        // Save (create) subcategory
+        [HttpPost]
+        public async Task<IActionResult> SaveMenuSubcategory([FromBody] JsonElement payload)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/SaveMenuSubcategory?UserName=" + userName;
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            try
+            {
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(apiUrl, content);
+
+                var body = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode) return Ok(body);
+                return StatusCode((int)response.StatusCode, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling SaveMenuSubcategory API");
+                return StatusCode(500, "Error calling SaveMenuSubcategory API");
+            }
+        }
+
+        // Update subcategory
+        [HttpPut]
+        public async Task<IActionResult> SaveMenuSubcategory(int id, [FromBody] JsonElement payload)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/UpdateMenuSubcategory?UserName=" + userName + "&id=" + id;
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            try
+            {
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(apiUrl, content);
+
+                var body = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode) return Ok(body);
+                return StatusCode((int)response.StatusCode, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling UpdateMenuSubcategory API");
+                return StatusCode(500, "Error calling UpdateMenuSubcategory API");
+            }
+        }
+
+        // Save menu item (multipart/form-data expected)
+        [HttpPost]
+        [RequestSizeLimit(20_000_000)]
+        public async Task<IActionResult> SaveMenuItem()
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/SaveMenuItem?UserName=" + userName;
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            try
+            {
+                var multipart = new MultipartFormDataContent();
+
+                // copy simple form fields
+                foreach (var kv in Request.Form)
+                {
+                    // skip empty keys
+                    if (string.IsNullOrWhiteSpace(kv.Key)) continue;
+                    multipart.Add(new StringContent(kv.Value.ToString()), kv.Key);
+                }
+
+                // add files
+                foreach (var file in Request.Form.Files)
+                {
+                    if (file.Length == 0) continue;
+                    var stream = file.OpenReadStream();
+                    var sc = new StreamContent(stream);
+                    sc.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType ?? "application/octet-stream");
+                    // the name expected by backend is assumed "image" — change if backend expects different form field name
+                    multipart.Add(sc, file.Name ?? "image", file.FileName ?? "upload.bin");
+                }
+
+                var response = await client.PostAsync(apiUrl, multipart);
+                var body = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode) return Ok(body);
+                return StatusCode((int)response.StatusCode, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling SaveMenuItem API");
+                return StatusCode(500, "Error calling SaveMenuItem API");
+            }
+        }
+
+        // Update menu item (multipart/form-data)
+        [HttpPut]
+        [RequestSizeLimit(20_000_000)]
+        public async Task<IActionResult> SaveMenuItem(int id)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/UpdateMenuItem?UserName=" + userName + "&id=" + id;
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            try
+            {
+                var multipart = new MultipartFormDataContent();
+
+                foreach (var kv in Request.Form)
+                {
+                    if (string.IsNullOrWhiteSpace(kv.Key)) continue;
+                    multipart.Add(new StringContent(kv.Value.ToString()), kv.Key);
+                }
+
+                foreach (var file in Request.Form.Files)
+                {
+                    if (file.Length == 0) continue;
+                    var stream = file.OpenReadStream();
+                    var sc = new StreamContent(stream);
+                    sc.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType ?? "application/octet-stream");
+                    multipart.Add(sc, file.Name ?? "image", file.FileName ?? "upload.bin");
+                }
+
+                var response = await client.PostAsync(apiUrl, multipart); // adjust to PutAsync if backend expects PUT with multipart
+                var body = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode) return Ok(body);
+                return StatusCode((int)response.StatusCode, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling UpdateMenuItem API");
+                return StatusCode(500, "Error calling UpdateMenuItem API");
+            }
+        }
+        
+        // SaveTableCount POST action to persist table count to backend API
+        [HttpPost]
+        public async Task<IActionResult> SaveTableCount([FromBody] int count)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/SetTableCount?UserName=" + userName;
+            string jwtToken = token;
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+
+            try
+            {
+                var json = JsonSerializer.Serialize(count);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync(apiUrl, content);
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                    return Ok(body);
+
+                _logger.LogError("SaveTableCount API returned {StatusCode}: {Body}", response.StatusCode, body);
+                return StatusCode((int)response.StatusCode, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling SetTableCount API");
+                return StatusCode(500, "Error calling SetTableCount API");
+            }
+        }
+
         #endregion
     }
 }
