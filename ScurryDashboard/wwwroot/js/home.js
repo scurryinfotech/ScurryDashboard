@@ -313,6 +313,7 @@ $(document).ready(function () {
         // Open payment modal
         // allow the in-progress modal to hide first if present
         $("#divInProgressModal").modal("hide");
+        $("#divInProgressModalHome").modal("hide");
         setTimeout(() => {
             $("#paymentModal").addClass("active");
             const d = document.getElementById("discountInput");
@@ -322,6 +323,11 @@ $(document).ready(function () {
 
     // When in-progress modal shows, set button mode
     $(document).on("show.bs.modal", "#divInProgressModal", function () {
+        const tableTitle = $(this).find(".modal-title").text().trim();
+        const tableNo = parseInt(tableTitle.replace("Table", ""));
+        updateConfirmOrderBtn(tableNo);
+    });
+    $(document).on("show.bs.modal", "#divInProgressModalHome", function () {
         const tableTitle = $(this).find(".modal-title").text().trim();
         const tableNo = parseInt(tableTitle.replace("Table", ""));
         updateConfirmOrderBtn(tableNo);
@@ -470,6 +476,7 @@ function loadTableOrders() {
                 if (!window.prevNewOrderTables.includes(tableNo)) {
                     $(".modal-title").text("Table " + tableNo);
                     $("#divInProgressModal").modal("show");
+                    $("#divInProgressModalHome").modal("show");
                     updateOrderDetails("Table " + tableNo);
                 }
             });
@@ -1449,6 +1456,7 @@ $(document).on("click", "#paymentModal", function (e) {
 function openPaymentModal(orderId, orderData) {
     paymentContext = 'table';
     $("#divInProgressModal").modal("hide");
+    $("#divInProgressModalHome").modal("hide");
     setTimeout(() => {
         $("#paymentModal").addClass("active");
         const d = document.getElementById("discountInput");
@@ -2368,7 +2376,7 @@ function createOrderCard(order) {
     const platformClass = order.platform;
     const badgeClass = `badge-${order.platform}`;
     const statusClass = `status-${order.status}`;
-    
+
     return `
         <div class="order-card ${platformClass}">
             <div class="order-header">
@@ -2586,8 +2594,8 @@ function viewOrderDetails(orderId) {
         </div>
     `;
 
-    $('#orderDetails').html(content);
-    $('#divInProgressModal').modal('show');
+    $('#orderDetailsHome').html(content);
+    $('#divInProgressModalHome').modal('show');
 }
 
 // UPDATE NEW ORDERS BADGE
@@ -2989,7 +2997,7 @@ function getOrdersFromRestaurant() {
                         timestamp: new Date(order.date),
                         deliveryTime: order.prep_time || '15 min',
                         address: order.address,
-                        specialInstructions:order.specialInstructions
+                        specialInstructions: order.specialInstructions
                     };
                 }
 
