@@ -2368,7 +2368,7 @@ function createOrderCard(order) {
     const platformClass = order.platform;
     const badgeClass = `badge-${order.platform}`;
     const statusClass = `status-${order.status}`;
-
+    
     return `
         <div class="order-card ${platformClass}">
             <div class="order-header">
@@ -2382,6 +2382,7 @@ function createOrderCard(order) {
                 <div><strong>Phone:</strong> ${order.phone}</div>
                 <div><strong>Delivery Time:</strong> ${order.deliveryTime}</div>
                 <div><strong>Platform:</strong> ${order.platform.charAt(0).toUpperCase() + order.platform.slice(1)}</div>
+                <div><strong>Notes:</strong> ${order.specialInstructions}</div>
             </div>
           <div class="order-items">
     ${order.items.map(item => `
@@ -2987,7 +2988,8 @@ function getOrdersFromRestaurant() {
                         status: order.orderStatus || 'new',
                         timestamp: new Date(order.date),
                         deliveryTime: order.prep_time || '15 min',
-                        address: order.address
+                        address: order.address,
+                        specialInstructions:order.specialInstructions
                     };
                 }
 
