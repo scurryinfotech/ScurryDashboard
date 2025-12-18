@@ -327,11 +327,7 @@ $(document).ready(function () {
         const tableNo = parseInt(tableTitle.replace("Table", ""));
         updateConfirmOrderBtn(tableNo);
     });
-    $(document).on("show.bs.modal", "#divInProgressModalHome", function () {
-        const tableTitle = $(this).find(".modal-title").text().trim();
-        const tableNo = parseInt(tableTitle.replace("Table", ""));
-        updateConfirmOrderBtn(tableNo);
-    });
+    
 });
 
 // ========== Data Loading ==========
@@ -476,7 +472,6 @@ function loadTableOrders() {
                 if (!window.prevNewOrderTables.includes(tableNo)) {
                     $(".modal-title").text("Table " + tableNo);
                     $("#divInProgressModal").modal("show");
-                    $("#divInProgressModalHome").modal("show");
                     updateOrderDetails("Table " + tableNo);
                 }
             });
