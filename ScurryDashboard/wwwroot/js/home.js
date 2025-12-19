@@ -95,9 +95,7 @@ function displayDateFromKey(key) {
 }
 
 function ensureAudioUnlocked() {
-    debugger;
     if (audioUnlocked) return;
-    debugger;
     try {
         const t = new Audio(ALARM_URL);
 

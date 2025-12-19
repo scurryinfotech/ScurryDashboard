@@ -896,7 +896,7 @@ namespace ScurryDashboard.Controllers
             }
 
             var client = _httpClientFactory.CreateClient();
-            var apiUrl = $"{apiPort}/api/Order/SetTableCount/{count}";
+            var apiUrl = $"{apiPort}/api/Order/SetTableCount?count="+count;
 
             client.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);

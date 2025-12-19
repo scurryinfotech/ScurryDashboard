@@ -746,19 +746,18 @@
                     loadSubcategoriesForCategory(derivedCatId, function () {
                         $('#itemSubcategoryId').val(subId == null ? '' : String(subId));
                     });
-
                     // show image in modal preview if imageSrc / imageUrl / imageData available
                     if (found.imageSrc) {
                         const src = normalizeImageSrc(found.imageSrc);
                         $('#itemImagePreview').attr('src', src).show();
-                        $('.custom-file-label[for="itemImage"]').text(found.fileName ?? 'Image');
-                    } else if (found.imageData && found.fileName) {
-                        const mime = getMimeFromName(found.fileName);
+                        $('.custom-file-label[for="itemImage"]').text(found.itemName ?? 'Image');
+                    } else if (found.imageData && found.itemName) {
+                        const mime = getMimeFromName(found.itemName);
                         $('#itemImagePreview').attr('src', `data:${mime};base64,${found.imageData}`).show();
-                        $('.custom-file-label[for="itemImage"]').text(found.fileName);
+                        $('.custom-file-label[for="itemImage"]').text(found.itemName);
                     } else if (found.imageUrl) {
                         $('#itemImagePreview').attr('src', found.imageUrl).show();
-                        $('.custom-file-label[for="itemImage"]').text(found.fileName ?? 'Image');
+                        $('.custom-file-label[for="itemImage"]').text(found.itemName ?? 'Image');
                     } else {
                         $('#itemImagePreview').hide().attr('src', '');
                         $('.custom-file-label[for="itemImage"]').text('Choose file');
@@ -933,9 +932,10 @@
                     // item may not include categoryId but does include subcategoryId (per your note)
                     const subId = it.subcategoryId ?? it.SubcategoryId ?? it.subcategory_id ?? null;
                     let imgHtml = '';
+                    debugger
                     // prefer fully-qualified binary/data/url fields
-                    if (it.imageData && it.fileName) {
-                        const mime = getMimeFromName(it.fileName);
+                    if (it.imageData && it.itemName) {
+                        const mime = getMimeFromName(it.itemName);
                         imgHtml = `<img src="data:${mime};base64,${it.imageData}" style="max-height:60px;" class="img-thumbnail" />`;
                     } else if (it.imageUrl) {
                         imgHtml = `<img src="${it.imageUrl}" style="max-height:60px;" class="img-thumbnail" />`;
