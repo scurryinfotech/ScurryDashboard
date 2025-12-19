@@ -36,7 +36,7 @@ const Toast = {
 
         this.container.appendChild(toast);
 
-        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => toast.classList.add('show'), 3);
 
         if (closable) {
             const closeBtn = toast.querySelector('.toast-close');

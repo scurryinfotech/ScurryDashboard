@@ -25,8 +25,55 @@ let currentOnlineOrderId = null;
 let currentOrderId = null;
 let currentOrderData = null;
 
+let isHomeActive;
+let currentPage = 1;
+let pageSize = 20;
+let isLoading = false;
+let hasMoreData = true;
+let allOrdersData = [];
+let filteredOrdersData = [];
+
 // ========== Utilities ==========
 
+$(document).ready(function () {
+
+    $('#manageLink').show();
+    $('#homeLink').hide();
+    $('#switchOnOff').show();
+    initHomeSwitch();
+    //if ($.fn.modal && $.fn.modal.Constructor) {
+    //    $.fn.modal.Constructor.prototype._enforceFocus = function () { };
+    //}
+    setTodayDate();
+    setupDiscountButtons();
+    setInterval(function () {
+        loadTableCount();
+        loadTableOrders(false);
+        getOrdersFromRestaurant();
+        loadOrderHistory(true);
+        //setupInfiniteScroll();
+    }, 13000);
+
+    //initializeConnectionUI();
+
+    //// Zomato button click handler
+    //$('#zomatoBtn').on('click', function () {
+    //    isZomatoActive = !isZomatoActive;
+    //    updateZomatoUI();
+    //});
+
+    //// Swiggy button click handler
+    //$('#swiggyBtn').on('click', function () {
+    //    isSwiggyActive = !isSwiggyActive;
+    //    updateSwiggyUI();
+    //});
+
+    //startAutoRefresh();
+
+
+    //safeCall("renderOrders");
+    //safeCall("updateNewOrdersBadge");
+});
 function dateKeyFromISO(iso) {
     if (!iso) return "";
     const normalized = iso.includes("T") ? iso : iso.replace(" ", "T");
@@ -47,11 +94,10 @@ function displayDateFromKey(key) {
     });
 }
 
-
-
 function ensureAudioUnlocked() {
+    debugger;
     if (audioUnlocked) return;
-
+    debugger;
     try {
         const t = new Audio(ALARM_URL);
 
@@ -75,6 +121,7 @@ function ensureAudioUnlocked() {
 
     }
 }
+
 function showStopBeepButton() {
     if ($('#stopBeepBtn').length) return;
     const stopBtn = `
@@ -91,9 +138,11 @@ function hideStopBeepButton() {
 }
 
 function playBeep() {
+    debugger;
     if (!audioUnlocked) return;
+    debugger;
     if (isBeepPlaying) return;
-
+    debugger;
     try {
         if (!audioBeep) {
             audioBeep = new Audio(ALARM_URL);
@@ -133,6 +182,7 @@ function stopBeep() {
 }
 
 function startTableBeep(tableNo) {
+    debugger;
     if (!audioUnlocked) return;
     if (beepTables[tableNo]) return;
 
@@ -206,132 +256,708 @@ function checkAndStopBeepIfNoProblems() {
     }
 }
 
+$(document).on("click keydown touchstart pointerdown", ensureAudioUnlocked); 
+
 $(document).on("click", "#stopBeepBtn", function () {
     stopAllBeeps();
 });
 
+function initHomeSwitch() {
+    $.ajax({
+        url: '/Home/GetAvailabilityHomeDelivery',
+        method: 'GET',
+        contentType: 'application/json',
+        success: function (data) {
+            isHomeActive = data;
+            updateHomeUI();
+        },
+        error: function (xhr, status, error) {
+        }
+    });
+}
 
-$(document).ready(function () {
+function setTodayDate() {
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0];
+    $('#startDate').val(dateString);
+    $('#endDate').val(dateString);
+}
 
-    loadTableOrders(false);
+// Calculate and display revenue
+function calculateRevenue(orders) {
+    if (!orders || orders.length === 0) {
+        $('#totalRevenue').text('₹0.00');
+        $('#orderCount').text('0 Orders');
+        return;
+    }
 
-    setupDiscountButtons();
-    setInterval(function () {
-        loadTableOrders(false);
-
-    }, 30000);
-
-    setInterval(function () {
-        getOrdersFromRestaurant();
-
-    }, 20000);
-
-    loadTableCount();
-
-
-    safeCall("renderOrders");
-    safeCall("updateNewOrdersBadge");
-
-
-    $(document).on("click", ".card", function () {
-        const tableTitle = $(this).find(".card-title").text();
-        $(".modal-title").text(tableTitle);
-        currentTableNo = parseInt(tableTitle.replace("Table", ""));
-        $(".card").addClass("m-3 card-click-animation card-click-opacity");
-        $(this).removeClass("m-3 card-click-opacity");
-        updateOrderDetails(tableTitle);
+    let grouped = {};
+    orders.forEach(o => {
+        if (!grouped[o.orderId]) {
+            grouped[o.orderId] = Number(o.finalAmount) || 0;
+        }
     });
 
-    // Modal button: Accept or Complete (opens payment modal)
-    $(document).off("click", "#confirmOrderBtn").on("click", "#confirmOrderBtn", function () {
-        const $btn = $(this);
-        const tableTitle = $(".modal-title").text();
-        const tableNo = parseInt(tableTitle.replace("Table", ""));
-        const data = window.liveOrdersData || [];
+    // Total revenue = sum of unique finalAmount values
+    const totalRevenue = Object.values(grouped).reduce((a, b) => a + b, 0);
 
-        // Accept assigning orders
-        if ($btn.data("mode") !== "complete") {
-            const assigningOrders = data.filter(
-                (order) => order.tableNo === tableNo && order.orderStatusId === 1
-            );
-            if (assigningOrders.length === 0) {
-                safeCall("showSuccessMessage", "No assigning orders to accept!");
-                return;
+    // Unique order count
+    const orderCount = Object.keys(grouped).length;
+
+    $('#totalRevenue').text(`₹${totalRevenue.toFixed(2)}`);
+    $('#orderCount').text(`${orderCount} Orders`);
+}
+
+function updateRevenueDateRange(startDate, endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
+    if (start.getTime() === today.getTime() && end.getTime() === today.getTime()) {
+        $('#revenueDateRange').text("Today's Revenue");
+    } else if (start.getTime() === end.getTime()) {
+        $('#revenueDateRange').text(`Revenue for ${start.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`);
+    } else {
+        $('#revenueDateRange').text(`Revenue from ${start.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} to ${end.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`);
+    }
+}
+
+function applyDateFilter() {
+    const start = $('#startDate').val();
+    const end = $('#endDate').val();
+
+    if (!start || !end) {
+        alert("Please select both start and end dates");
+        return;
+    }
+
+    const startDate = new Date(start);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(end);
+    endDate.setHours(23, 59, 59, 999);
+
+    if (startDate > endDate) {
+        alert("Start date cannot be after end date");
+        return;
+    }
+
+    // Filter the data
+    filteredOrdersData = allOrdersData.filter(order => {
+        const orderDate = new Date(order.date);
+        return orderDate >= startDate && orderDate <= endDate;
+    });
+
+    // Update revenue display
+    updateRevenueDateRange(start, end);
+    calculateRevenue(filteredOrdersData);
+
+
+    currentPage = 1;
+    hasMoreData = true;
+    $('#orderHistoryTable tbody').empty();
+    $('#noMoreData').removeClass('active');
+
+    displayOrdersPage(filteredOrdersData);
+}
+
+function clearDateFilter() {
+    setTodayDate();
+    applyDateFilter();
+}
+
+function updateHomeUI() {
+
+    if (isHomeActive) {
+        $('#HomeBtn')
+            .removeClass('connect')
+            .addClass('disconnect')
+            .text('Disconnect Home Delivery Orders');
+        $('#HomeStatus')
+            .text('Connected')
+            .removeClass('disconnected sync-offline')
+            .addClass('connected sync-online');
+    } else {
+        $('#HomeBtn')
+            .removeClass('disconnect')
+            .addClass('connect')
+            .text('Connect Home Delivery Orders');
+        $('#HomeStatus')
+            .text('Disconnected')
+            .removeClass('connected sync-online')
+            .addClass('disconnected sync-offline');
+    }
+}
+
+function toggleHomeAvailability(isAvailable) {
+
+    $.ajax({
+        url: '/Home/SetAvailabilityHomeDelivery',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(isAvailable),
+        success: function () { },
+        error: function () { }
+    });
+}
+
+function setupInfiniteScroll() {
+    const container = $('#tableContainer');
+    container.on('scroll', function () {
+        if (isLoading || !hasMoreData) return;
+        const scrollTop = container.scrollTop();
+        const scrollHeight = container[0].scrollHeight;
+        const clientHeight = container.height();
+        if (scrollTop + clientHeight >= scrollHeight - 100) {
+            loadMoreOrders();
+        }
+    });
+}
+
+function loadOrderHistory(isInitial = false) {
+    if (isInitial) {
+        currentPage = 1;
+        hasMoreData = true;
+    }
+    isLoading = true;
+    $('#loadingSpinner').addClass('active');
+    $.ajax({
+        url: '/Home/GetOrderHistory',
+        type: 'GET',
+        success: function (data) {
+            allOrdersData = data || [];
+            const start = $('#startDate').val();
+            const end = $('#endDate').val();
+            if (start && end) {
+                const startDate = new Date(start);
+                startDate.setHours(0, 0, 0, 0);
+                const endDate = new Date(end);
+                endDate.setHours(23, 59, 59, 999);
+                filteredOrdersData = allOrdersData.filter(order => {
+                    const orderDate = new Date(order.date);
+                    return orderDate >= startDate && orderDate <= endDate;
+                });
+            } else {
+                filteredOrdersData = allOrdersData;
             }
 
-            let completedAccepts = 0;
-            const totalAccepts = assigningOrders.length;
+            if (isInitial) {
+                $('#orderHistoryTable tbody').empty();
+                updateRevenueDateRange(start, end);
+            }
 
-            assigningOrders.forEach((order) => {
-                acceptOrder(order, function () {
-                    completedAccepts++;
-                    if (completedAccepts === totalAccepts) {
-                        safeCall("showSuccessMessage", `Accepted ${totalAccepts} order(s) for Table ${tableNo}!`);
+            calculateRevenue(allOrdersData);
+            displayOrdersPage(allOrdersData);
 
-                        setTimeout(() => {
-                            checkAndStopBeepIfNoProblems();
-                        }, 100);
+            isLoading = false;
+            $('#loadingSpinner').removeClass('active');
+        },
+        error: function (xhr, status, error) {
+            console.error('Error loading order history:', error);
+            $('#orderHistoryTable tbody').html(`
+                    <tr><td colspan="10" class="text-center text-danger">Failed to load order history</td></tr>
+                `);
+            isLoading = false;
+            $('#loadingSpinner').removeClass('active');
+            hasMoreData = false;
+        }
+    });
+}
 
-                        setTimeout(() => {
-                            updateConfirmOrderBtn(tableNo);
-                            updateOrderDetails(tableTitle);
-                        }, 500);
-                    }
-                });
+function loadMoreOrders() {
+    if (isLoading || !hasMoreData) return;
+    currentPage++;
+    displayOrdersPage(filteredOrdersData);
+}
+
+function displayOrdersPage(dataToDisplay = filteredOrdersData) {
+    // Build grouped & paged rows as before
+    if (!dataToDisplay || dataToDisplay.length === 0) {
+        if (currentPage === 1) {
+            $('#orderHistoryTable tbody').html(`
+    <tr><td colspan="10" class="text-center text-muted">No orders found for the selected date range.</td></tr>
+                    `);
+        }
+        hasMoreData = false;
+        $('#noMoreData').addClass('active');
+        if (typeof reinitOrderHistoryDataTable === 'function') reinitOrderHistoryDataTable();
+        return;
+    }
+
+    const groupedOrders = {};
+    dataToDisplay.forEach(order => {
+        if (!groupedOrders[order.orderId]) groupedOrders[order.orderId] = [];
+        groupedOrders[order.orderId].push(order);
+    });
+
+    const sortedOrderIds = Object.keys(groupedOrders).sort((a, b) => {
+        const na = a.match(/\\d+/);
+        const nb = b.match(/\\d+/);
+        if (na && nb) return Number(nb[0]) - Number(na[0]);
+        return b.localeCompare(a);
+    });
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const pageOrderIds = sortedOrderIds.slice(startIndex, endIndex);
+
+    if (pageOrderIds.length === 0) {
+        hasMoreData = false;
+        $('#noMoreData').addClass('active');
+        if (typeof reinitOrderHistoryDataTable === 'function') reinitOrderHistoryDataTable();
+        return;
+    }
+
+    const rowsData = pageOrderIds.map(orderId => {
+        const orders = groupedOrders[orderId];
+        const first = orders[0];
+        const totalItems = orders.length;
+        const date = first.date ? new Date(first.date).toLocaleString('en-IN') : '';
+        return [
+            `<strong>${first.orderId}</strong>`,
+            first.customerName || 'N/A',
+            first.phone || 'N/A',
+            first.tableNo ? 'Table ' + first.tableNo : 'N/A',
+            `<div style="max-width:200px; white-space:normal;">${first.itemName || 'N/A'}</div>`,
+            `<strong>₹${(Number(first.finalAmount) || 0).toFixed(2)}</strong>`,
+            totalItems,
+            first.paymentMode || 'Online',
+            date,
+            `<button class="btn btn-sm btn-info btn-view-bill" data-order-id="${first.orderId}">View Bill</button>`
+        ];
+    });
+
+    try {
+        if (typeof $.fn.DataTable === 'undefined') {
+            const tbody = $('#orderHistoryTable tbody');
+            if (currentPage === 1) tbody.empty();
+            rowsData.forEach(r => {
+                const rowHtml = '<tr class="table-success">' + r.map(c => `<td>${c}</td>`).join('') + '</tr>';
+                tbody.append(rowHtml);
             });
-
+            if (endIndex >= sortedOrderIds.length) {
+                hasMoreData = false;
+                $('#noMoreData').addClass('active');
+            }
             return;
         }
 
-        // Complete flow -> open payment modal for active orders
-        const activeOrders = data.filter((order) => order.tableNo === tableNo && order.orderStatusId === 2);
-        if (activeOrders.length === 0) {
-            safeCall("showSuccessMessage", "No active orders to complete!");
+        const $table = $('#orderHistoryTable');
+
+        if (!$.fn.DataTable.isDataTable('#orderHistoryTable')) {
+            $table.DataTable({
+                order: [[0, 'desc']],
+                responsive: { details: { type: 'column', target: -1 } },
+                paging: false,
+                searching: false,
+                info: false,
+                ordering: true,
+                autoWidth: false,
+                deferRender: true,
+                columnDefs: [{ orderable: false, targets: -1 }, { className: 'dt-control', targets: -1 }],
+                destroy: false,
+                initComplete: function () {
+                    try { this.columns.adjust(); if (this.responsive) this.responsive.recalc(); } catch (e) { }
+                }
+            });
+        }
+
+        const table = $table.DataTable();
+
+        if (currentPage === 1) table.clear();
+
+        table.rows.add(rowsData);
+        try { table.order([[0, 'desc']]); } catch (e) { }
+        table.draw(false);
+        try { table.columns.adjust(); if (table.responsive) table.responsive.recalc(); } catch (e) { }
+
+        if (endIndex >= sortedOrderIds.length) {
+            hasMoreData = false;
+            $('#noMoreData').addClass('active');
+        }
+    } catch (err) {
+        console.warn('displayOrdersPage DataTable error:', err);
+        const tbody = $('#orderHistoryTable tbody');
+        if (currentPage === 1) tbody.empty();
+        rowsData.forEach(r => {
+            const rowHtml = '<tr class="table-success">' + r.map(c => `<td>${c}</td>`).join('') + '</tr>';
+            tbody.append(rowHtml);
+        });
+    }
+}
+
+$(document).on('click', '.btn-view-order', function () {
+    const encoded = $(this).attr('data-orders');
+    if (!encoded) {
+        alert('No order details available');
+        return;
+    }
+    try {
+        const orders = JSON.parse(decodeURIComponent(encoded));
+        viewOrderDetailss(orders);
+    } catch (err) {
+        console.error('Failed to parse order details:', err);
+        alert('Failed to load order details');
+    }
+});
+
+function viewOrderDetailss(orders) {
+    if (!orders || orders.length === 0) {
+        alert('No order details available');
+        return;
+    }
+
+    const firstOrder = orders[0];
+    const totalAmount = orders.reduce((sum, order) => sum + (Number(order.price) || 0), 0);
+    const date = new Date(firstOrder.date).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    let itemsHtml = '';
+    orders.forEach((order, index) => {
+        const halfQty = Number(order.halfPortion) || 0;
+        const fullQty = Number(order.fullPortion) || 0;
+        const qtyText = halfQty > 0 && fullQty > 0
+            ? `${halfQty} Half + ${fullQty} Full`
+            : halfQty > 0
+                ? `${halfQty} Half`
+                : `${fullQty} Full`;
+
+        itemsHtml += `
+                <div class="bill-item">
+                    <span><strong>${index + 1}.</strong> ${order.itemName || 'N/A'} <small>(${qtyText})</small></span>
+                    <span><strong>₹${(Number(order.price) || 0).toFixed(2)}</strong></span>
+                </div>
+            `;
+    });
+
+    const subtotal = totalAmount;
+    const discount = Number(firstOrder.discount) || 0;
+    const finalTotal = subtotal - discount;
+    const billHtml = `
+    <div class="bill" id="printable-bill" style="font-family: Arial; width:260px;">
+
+        <!-- Header -->
+        <div style="text-align:center; border-bottom:1px dashed #000; padding-bottom:6px;">
+            <div style="font-size:18px; font-weight:bold;">Grill N Shakes</div>
+            <div style="font-size:11px;">123 Restaurant Street, Ulwe</div>
+            <div style="font-size:11px;">📞 +918928484618</div>
+        </div>
+
+        <!-- Order Details -->
+        <div style="margin-top:6px; font-size:12px;">
+            <div><strong>Order:</strong> #${firstOrder.orderId}</div>
+            <div><strong>Date:</strong> ${date}</div>
+            <div><strong>Name:</strong> ${firstOrder.customerName || 'Walk-in'}</div>
+            <div><strong>Phone:</strong> ${firstOrder.phone || 'N/A'}</div>
+            <div><strong>Table:</strong> ${firstOrder.tableNo || 'N/A'}</div>
+            <div><strong>Pay:</strong> ${firstOrder.paymentMode || 'CASH'}</div>
+        </div>
+
+        <!-- Items -->
+        <div style="border-top:1px dashed #000; margin-top:6px; padding-top:6px;">
+            <strong style="font-size:13px;">Items (${orders.length})</strong>
+            <div style="margin-top:4px; font-size:12px;">
+                ${itemsHtml}
+            </div>
+        </div>
+
+        <!-- Totals -->
+        <div style="border-top:1px dashed #000; margin-top:6px; padding-top:6px; font-size:13px;">
+            <div style="display:flex; justify-content:space-between;">
+                <span>Subtotal</span>
+                <span>₹${subtotal.toFixed(2)}</span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; margin-top:4px;">
+                <span>Total</span>
+                <span>₹${totalAmount.toFixed(2)}</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align:center; margin-top:8px; font-size:11px; border-top:1px dashed #000; padding-top:6px;">
+            <div>🙏 Thank you!</div>
+            <div>GST: 27XXXXX1234X1ZX</div>
+        </div>
+
+    </div>
+    `;
+
+    $('#bill-content').html(billHtml);
+    $('#bill-modal').addClass('active');
+    $('#bill-modal').fadeIn(300);
+
+}
+
+function closeBillModal() {
+    $('#bill-modal').fadeOut(300);
+}
+
+function printBill() {
+    window.print();
+}
+
+function downloadBill() {
+    if (typeof window.downloadBill === 'function') {
+        window.downloadBill();
+    } else {
+        alert('PDF download functionality not available');
+    }
+}
+
+$(document).on('click', '#bill-modal', function (e) {
+    if (e.target.id === 'bill-modal') {
+        closeBillModal();
+    }
+});
+
+function buildBillUI(billData) {
+
+    if (!billData || billData.length === 0) {
+        alert("No bill found.");
+        return;
+    }
+
+
+    const firstOrder = billData[0];
+
+    const subtotal = billData.reduce((sum, item) => {
+        const fullQty = Number(item.fullPortion) || 0;
+        const halfQty = Number(item.halfPortion) || 0;
+
+        const fullPrice = Number(item.fullPrice) || Number(item.price) || 0;
+        const halfPrice = Number(item.halfPrice) || (Number(item.price) / 2) || 0;
+
+        return sum + (fullQty * fullPrice) + (halfQty * halfPrice);
+    }, 0);
+
+    const discount = Number(firstOrder.discountAmount) || 0;
+    const finalTotal = subtotal - discount;
+
+    let billHtml = `
+    <div id="printable-bill" style="
+        width:260px;
+        font-family:'Courier New', monospace;
+        margin: 0 auto;
+        font-size: 14px;
+        line-height: 1.2;
+        padding:4px;
+        font-weight: 700;
+    ">
+
+        <div style="text-align:center;">
+            <strong>GRILL N SHAKES</strong><br/>
+            Plot C-179 Sector-19<br/>
+            Ulwe, Navi Mumbai<br/>
+            +91 8928484618
+            <hr style="border-top:1px dashed #000;">
+        </div>
+
+        <div style="font-size:14px;">
+            Order ID : <strong>#${firstOrder.orderId}</strong><br/>
+            Date     : ${new Date(firstOrder.createdDate).toLocaleString()}<br/>
+            Name     : ${firstOrder.customerName}<br/>
+            Phone    : ${firstOrder.phone}<br/>
+            Notes: ${firstOrder.specialInstructions}<br/>
+        </div>
+
+        <hr style="border-top:1px dashed #000;">
+
+        <strong>Items</strong><br/>
+
+        ${billData.map((item, i) => {
+
+        const fullQty = Number(item.fullPortion) || 0;
+        const halfQty = Number(item.halfPortion) || 0;
+
+
+        const fullPrice = Number(item.fullPrice) || Number(item.price) || 0;
+        const halfPrice = Number(item.halfPrice) || (Number(item.price) / 2) || 0;
+
+
+        const totalItemPrice = (fullQty * fullPrice) + (halfQty * halfPrice);
+
+        return `
+            <div style="display:flex; font-size:14px; justify-content:space-between;">
+                <span>${i + 1}. ${item.itemName} (${fullQty}F ${halfQty}H)</span>
+                <span>₹${totalItemPrice.toFixed(2)}</span>
+            </div>
+            `;
+    }).join('')}
+
+        <hr style="border-top:1px dashed #000;">
+
+        <div style="display:flex; font-size:14px; justify-content:space-between;">
+            <span>Subtotal:</span>
+            <span>₹${subtotal.toFixed(2)}</span>
+        </div>
+
+        <div style="display:flex; font-size:14px; justify-content:space-between;">
+            <span>Discount:</span>
+            <span>₹${discount.toFixed(2)}</span>
+        </div>
+
+        <hr style="border-top:1px dashed #000;">
+
+        <div style="display:flex; font-size:15px; justify-content:space-between; font-weight:900;">
+            <span>Total:</span>
+            <span>₹${finalTotal.toFixed(2)}</span>
+        </div>
+
+        <br/>
+
+        <div style="text-align:center; font-size:15px;">
+            Thank you for visiting!<br/><br/>
+        </div>
+
+        <div style="height:40px;"></div>
+
+    </div>
+    `;
+
+    $("#bill-content").html(billHtml);
+    $("#bill-modal").fadeIn(300);
+}
+
+$(document).on('click', '.btn-view-bill', function () {
+    const orderId = $(this).attr('data-order-id');
+
+
+    $.ajax({
+        url: `/Home/GetBillData?orderId=${orderId}`,
+        method: "GET",
+        success: function (billResponse) {
+            buildBillUI(billResponse);
+        },
+        error: function () {
+            alert("Failed to load bill.");
+        }
+    });
+});
+
+$(document).keyup(function (e) {
+    if (e.key === "Escape") {
+        closeBillModal();
+    }
+});
+
+$('#HomeBtn').on('click', function () {
+    isHomeActive = !isHomeActive;
+    updateHomeUI();
+    toggleHomeAvailability(isHomeActive);
+});
+$('#btnFilter').on('click', function () {
+    applyDateFilter();
+});
+$('#btnClear').on('click', function () {
+    clearDateFilter();
+});
+
+$(document).on("click", ".card", function () {
+    const tableTitle = $(this).find(".card-title").text();
+    $(".modal-title").text(tableTitle);
+    currentTableNo = parseInt(tableTitle.replace("Table", ""));
+    $(".card").addClass("m-3 card-click-animation card-click-opacity");
+    $(this).removeClass("m-3 card-click-opacity");
+    updateOrderDetails(tableTitle);
+});
+
+// Modal button: Accept or Complete (opens payment modal)
+$(document).off("click", "#confirmOrderBtn").on("click", "#confirmOrderBtn", function () {
+    const $btn = $(this);
+    const tableTitle = $(".modal-title").text();
+    const tableNo = parseInt(tableTitle.replace("Table", ""));
+    const data = window.liveOrdersData || [];
+
+    // Accept assigning orders
+    if ($btn.data("mode") !== "complete") {
+        const assigningOrders = data.filter(
+            (order) => order.tableNo === tableNo && order.orderStatusId === 1
+        );
+        if (assigningOrders.length === 0) {
+            safeCall("showSuccessMessage", "No assigning orders to accept!");
             return;
         }
 
-        // Keep selections (ids) and context
-        currentOrderData = activeOrders.map((o) => o.id);
-        paymentContext = "table";
+        let completedAccepts = 0;
+        const totalAccepts = assigningOrders.length;
 
-        // Reset payment modal UI
-        $(".payment-option").removeClass("selected");
-        $("#confirmPayment").prop("disabled", true);
-        $("#paymentError").removeClass("active");
-        $("#discountInput").val('');
+        assigningOrders.forEach((order) => {
+            acceptOrder(order, function () {
+                completedAccepts++;
+                if (completedAccepts === totalAccepts) {
+                    safeCall("showSuccessMessage", `Accepted ${totalAccepts} order(s) for Table ${tableNo}!`);
 
-        // Compute subtotal now and bind summary values so modal shows them immediately
-        window.currentModalOrderTotal = computeCurrentSubtotal() || 0;
-        const subtotal = Number(window.currentModalOrderTotal) || 0;
-        const discountAmt = 0;
-        const finalAmount = Math.max(0, subtotal - discountAmt);
+                    //setTimeout(() => {
+                    //    checkAndStopBeepIfNoProblems();
+                    //}, 100);
 
-        $('#paymentSubtotal').text(`₹${subtotal.toFixed(2)}`);
-        $('#paymentDiscount').text(`₹${discountAmt.toFixed(2)}`);
-        $('#paymentFinal').text(`₹${finalAmount.toFixed(2)}`);
+                    //setTimeout(() => {
+                    updateConfirmOrderBtn(tableNo);
+                    updateOrderDetails(tableTitle);
+                    //}, 500);
+                }
+            });
+        });
 
-        // Open payment modal
-        // allow the in-progress modal to hide first if present
-        $("#divInProgressModal").modal("hide");
-        $("#divInProgressModalHome").modal("hide");
-        setTimeout(() => {
-            $("#paymentModal").addClass("active");
-            const d = document.getElementById("discountInput");
-            if (d) d.focus();
-        }, 250);
-    });
+        return;
+    }
 
-    // When in-progress modal shows, set button mode
-    $(document).on("show.bs.modal", "#divInProgressModal", function () {
-        const tableTitle = $(this).find(".modal-title").text().trim();
-        const tableNo = parseInt(tableTitle.replace("Table", ""));
-        updateConfirmOrderBtn(tableNo);
-    });
-    
+    // Complete flow -> open payment modal for active orders
+    const activeOrders = data.filter((order) => order.tableNo === tableNo && order.orderStatusId === 2);
+    if (activeOrders.length === 0) {
+        safeCall("showSuccessMessage", "No active orders to complete!");
+        return;
+    }
+
+    // Keep selections (ids) and context
+    currentOrderData = activeOrders.map((o) => o.id);
+    paymentContext = "table";
+
+    // Reset payment modal UI
+    $(".payment-option").removeClass("selected");
+    $("#confirmPayment").prop("disabled", true);
+    $("#paymentError").removeClass("active");
+    $("#discountInput").val('');
+
+    // Compute subtotal now and bind summary values so modal shows them immediately
+    window.currentModalOrderTotal = computeCurrentSubtotal() || 0;
+    const subtotal = Number(window.currentModalOrderTotal) || 0;
+    const discountAmt = 0;
+    const finalAmount = Math.max(0, subtotal - discountAmt);
+
+    $('#paymentSubtotal').text(`₹${subtotal.toFixed(2)}`);
+    $('#paymentDiscount').text(`₹${discountAmt.toFixed(2)}`);
+    $('#paymentFinal').text(`₹${finalAmount.toFixed(2)}`);
+
+    // Open payment modal
+    // allow the in-progress modal to hide first if present
+    $("#divInProgressModal").modal("hide");
+    $("#divInProgressModalHome").modal("hide");
+    //setTimeout(() => {
+    $("#paymentModal").addClass("active");
+    const d = document.getElementById("discountInput");
+    if (d) d.focus();
+    //}, 250);
+});
+
+// When in-progress modal shows, set button mode
+$(document).on("show.bs.modal", "#divInProgressModal", function () {
+    const tableTitle = $(this).find(".modal-title").text().trim();
+    const tableNo = parseInt(tableTitle.replace("Table", ""));
+    updateConfirmOrderBtn(tableNo);
 });
 
 // ========== Data Loading ==========
-
 function loadTableOrders() {
     $.ajax({
         url: "/home/GetOrder",
@@ -374,7 +1000,7 @@ function loadTableOrders() {
                             // Next reminder in 5 minutes
                             completionTimers[order.id] = setTimeout(
                                 completionReminder,
-                                5 * 60 * 1000
+                                30 * 60 * 1000
                             );
                         } else {
                             clearTimeout(completionTimers[order.id]);
@@ -385,7 +1011,6 @@ function loadTableOrders() {
                 }
             });
 
-            // Cleanup completion timers for orders no longer active
             Object.keys(completionTimers).forEach((orderId) => {
                 if (!activeOrders.some((o) => o.id == orderId)) {
                     clearTimeout(completionTimers[orderId]);
@@ -394,7 +1019,6 @@ function loadTableOrders() {
                 }
             });
 
-            // Cleanup received times and reminder timers for no-longer assigning
             Object.keys(orderReceivedTimes).forEach((orderId) => {
                 if (!assigningOrders.some((o) => o.id == orderId)) {
                     delete orderReceivedTimes[orderId];
@@ -425,7 +1049,7 @@ function loadTableOrders() {
                     const acceptedTime = orderAcceptedTimes[order.id];
                     if (!acceptedTime) return false;
                     const elapsed = now - acceptedTime;
-                    return elapsed > 10 * 60 * 1000;
+                    return elapsed > 30 * 60 * 1000;
                 });
 
                 if (!hasNewOrders && !hasOverdueOrders) {
@@ -455,8 +1079,8 @@ function loadTableOrders() {
                             // Per-table beep and universal beep
                             startTableBeep(order.tableNo);
                             playBeep();
-                            // Next reminder in 5 minutes
-                            reminderTimers[order.id] = setTimeout(reminder, 5 * 60 * 1000);
+                            // Next reminder in 30 minutes
+                            reminderTimers[order.id] = setTimeout(reminder, 30 * 60 * 1000);
                         } else {
                             clearTimeout(reminderTimers[order.id]);
                             delete reminderTimers[order.id];
@@ -976,13 +1600,13 @@ $(document).on("click", ".accept-order-row-btn", function () {
         updateOrderQuantity(order, function () {
             acceptOrder(order, function () {
                 updateOrderDetails($(".modal-title").text());
-                checkAndStopBeepIfNoProblems();
+                //checkAndStopBeepIfNoProblems();
             });
         });
     } else {
         acceptOrder(order, function () {
             updateOrderDetails($(".modal-title").text());
-            checkAndStopBeepIfNoProblems();
+            //checkAndStopBeepIfNoProblems();
         });
     }
 });
@@ -1452,11 +2076,11 @@ function openPaymentModal(orderId, orderData) {
     paymentContext = 'table';
     $("#divInProgressModal").modal("hide");
     $("#divInProgressModalHome").modal("hide");
-    setTimeout(() => {
+    //setTimeout(() => {
         $("#paymentModal").addClass("active");
         const d = document.getElementById("discountInput");
         if (d) d.focus();
-    }, 250);
+    //}, 250);
 
 
     currentOrderId = orderId;
@@ -1784,9 +2408,9 @@ function completeOrder(order, callback) {
             bindDynamicTable();
             updateStats();
 
-            setTimeout(() => {
-                checkAndStopBeepIfNoProblems();
-            }, 100);
+            //setTimeout(() => {
+            //    checkAndStopBeepIfNoProblems();
+            //}, 100);
 
             if (callback) callback();
         },
@@ -1845,9 +2469,9 @@ function completeTableOrder(order, callback) {
             bindDynamicTable();
             updateStats();
 
-            setTimeout(() => {
-                checkAndStopBeepIfNoProblems();
-            }, 100);
+            //setTimeout(() => {
+            //    checkAndStopBeepIfNoProblems();
+            //}, 100);
 
             if (callback) callback();
         },
@@ -1945,9 +2569,9 @@ function showSuccessMessage(message) {
     `);
 
     $('body').append(toast);
-    setTimeout(() => {
+    //setTimeout(() => {
         toast.alert('close');
-    }, 3000);
+    //}, 3000);
 }
 
 
@@ -2011,13 +2635,11 @@ function deleteOrder(id) {
 
                 success: function (data, textStatus, jqXHR) {
 
-                    console.log('SoftDeleteOrder item success', { id: id, status: jqXHR.status, data });
-
                     removeItemLocally(i, id);
 
                     showSuccessMessage('Order item deleted');
 
-                    setTimeout(() => { checkAndStopBeepIfNoProblems(); }, 100);
+                    //setTimeout(() => { checkAndStopBeepIfNoProblems(); }, 100);
 
                 },
 
@@ -2113,17 +2735,12 @@ function deleteOrder(id) {
 
         success: function (data, textStatus, jqXHR) {
 
-            console.log('SoftDeleteOrder table success', { id, status: jqXHR.status, data });
-
-            // Remove from local liveOrdersData if present (id may be numeric)
 
             window.liveOrdersData = (window.liveOrdersData || []).filter(order => {
 
                 return String(order.id) !== String(id) && String(order.orderId || "") !== String(id);
 
             });
-
-            // Clean up timers for this id
 
             try {
 
@@ -2161,7 +2778,7 @@ function deleteOrder(id) {
 
             }
 
-            setTimeout(() => { checkAndStopBeepIfNoProblems(); }, 100);
+            //setTimeout(() => { checkAndStopBeepIfNoProblems(); }, 100);
         },
 
         error: function (jqXHR, textStatus, errorThrown) {
@@ -2209,27 +2826,6 @@ function updateConfirmOrderBtn(tableNo) {
 
 let isZomatoActive = false;
 let isSwiggyActive = false;
-
-$(document).ready(function () {
-    initializeConnectionUI();
-    getOrdersFromRestaurant();
-
-    // Zomato button click handler
-    $('#zomatoBtn').on('click', function () {
-        isZomatoActive = !isZomatoActive;
-        updateZomatoUI();
-    });
-
-    // Swiggy button click handler
-    $('#swiggyBtn').on('click', function () {
-        isSwiggyActive = !isSwiggyActive;
-        updateSwiggyUI();
-    });
-
-    // Initialize orders and auto-refresh
-
-    startAutoRefresh();
-});
 
 function initializeConnectionUI() {
     updateZomatoUI();
@@ -2959,9 +3555,9 @@ function showNotification(message, type) {
 
     $('body').append(notification);
 
-    setTimeout(() => {
+    //setTimeout(() => {
         $('.alert').fadeOut();
-    }, 3000);
+    //}, 3000);
 }
 
 function getOrdersFromRestaurant() {
@@ -3020,9 +3616,10 @@ function getOrdersFromRestaurant() {
 
             renderOrders();
             updateNewOrdersBadge();
-            if (!isAnyAlarmPlaying()) {
+            if (newOrders.length > 0) {
                 playBeep();
             }
+
         },
         error: function (xhr, status, error) {
 
@@ -3143,11 +3740,11 @@ function updateCoffeeOrderStatus(orderId, newStatus) {
 
 
             if (newStatus === 'completed') {
-                setTimeout(() => {
+                //setTimeout(() => {
                     ordersData.splice(orderIndex, 1);
                     renderOrders();
                     updateNewOrdersBadge();
-                }, 2000);
+                //}, 2000);
             }
         },
         error: function (xhr, status, error) {
@@ -3181,9 +3778,9 @@ $(document).on('click', '#btnViewHistory', function () {
           <i class="fas fa-spinner fa-spin"></i> Fetching order history...
       </div>
   `);
-    setTimeout(() => {
+    //setTimeout(() => {
         renderOrderHistory();
-    }, 300);
+    //}, 300);
 });
 
 //Auto refresh every 30 seconds
@@ -3240,9 +3837,9 @@ function printThermalBill(order) {
         </html>
     `);
     printWindow.document.close();
-    setTimeout(() => {
+    //setTimeout(() => {
         printWindow.focus();
         printWindow.print();
         printWindow.close();
-    }, 200);
+    //}, 200);
 }

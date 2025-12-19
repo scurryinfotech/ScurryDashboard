@@ -885,35 +885,49 @@ namespace ScurryDashboard.Controllers
                 return StatusCode(500, "Error calling UpdateMenuItem API");
             }
         }
-        
+
         // SaveTableCount POST action to persist table count to backend API
         [HttpPost]
         public async Task<IActionResult> SaveTableCount([FromBody] int count)
         {
+            if (count <= 0)
+            {
+                return BadRequest(new { success = false, message = "Table count must be greater than 0" });
+            }
+
             var client = _httpClientFactory.CreateClient();
-            var apiUrl = apiPort + "/api/Order/SetTableCount?UserName=" + userName;
-            string jwtToken = token;
+            var apiUrl = $"{apiPort}/api/Order/SetTableCount/{count}";
+
             client.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             try
             {
                 var json = JsonSerializer.Serialize(count);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await client.PostAsync(apiUrl, content);
+                _logger.LogInformation("Calling SetTableCount API with count: {Count}", count);
+                var response = await client.PostAsync(apiUrl, null);
                 var body = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
-                    return Ok(body);
+                {
+                    _logger.LogInformation("Table count saved successfully: {Count}", count);
+                    return Ok(new { success = true, message = "Table count saved successfully", data = body });
+                }
 
                 _logger.LogError("SaveTableCount API returned {StatusCode}: {Body}", response.StatusCode, body);
-                return StatusCode((int)response.StatusCode, body);
+                return StatusCode((int)response.StatusCode, new { success = false, message = body });
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP error calling SetTableCount API");
+                return StatusCode(500, new { success = false, message = "Network error calling API", error = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error calling SetTableCount API");
-                return StatusCode(500, "Error calling SetTableCount API");
+                return StatusCode(500, new { success = false, message = "Error calling API", error = ex.Message });
             }
         }
 
