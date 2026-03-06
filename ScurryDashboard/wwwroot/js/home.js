@@ -745,7 +745,7 @@ function buildBillUI(billData) {
 
     let billHtml = `
     <div id="printable-bill" style="
-        width:260px;
+        width:220px;
         font-family:'Courier New', monospace;
         margin: 0 auto;
         font-size: 14px;
@@ -3857,90 +3857,39 @@ $(document).on('click', '#btnViewHistory', function () {
 //Auto refresh every 30 seconds
 
 function printThermalBill(order) {
-    try {
-        const payload = {
-            OrderId: order.orderId || "",
-            Customer: "GRILL N SHAKES",
-            Phone: order.phone || "",
-            Address: order.address || "",
-            OrderTime: order.timestamp ? new Date(order.timestamp).toISOString() : new Date().toISOString(),
-            Items: (order.items || []).map(it => ({
-                Name: it.name || it.itemName || "-",
-                Quantity: (it.quantity || (it.fullPortion || 0) + (it.halfPortion || 0) || 1),
-                Price: Number(it.price || it.total || 0)
-            })),
-            Subtotal: Number(order.total) || ((order.items || []).reduce((s, i) => s + ((i.price || 0) * (i.quantity || ((i.fullPortion || 0) + (i.halfPortion || 0) || 1))), 0)),
-            Discount: Number(order.discountAmount || order.discount || 0),
-            Total: Number(order.total) || 0,
-            PrinterName: "POS-58"
-        };
 
-        // POST to server API
-        fetch('/api/print/PrintBill', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+    const payload = {
+        OrderId: order.orderId || "",
+        Phone: order.phone || "",
+        Address: order.address || "",
+        OrderTime: order.timestamp ? new Date(order.timestamp) : new Date(),
+
+        Items: (order.items || []).map(it => ({
+            Name: it.name || it.itemName || "-",
+            Quantity: it.quantity || ((it.fullPortion || 0) + (it.halfPortion || 0)) || 1,
+            Price: Number(it.price || 0)
+        })),
+
+        Subtotal: Number(order.total) || 0,
+        Discount: Number(order.discountAmount || order.discount || 0),
+        Total: Number(order.total) || 0,
+
+        PrinterName: "Everycom-58-Series"
+    };
+
+    fetch('/api/print/PrintBill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+        .then(r => {
+            if (!r.ok) throw new Error("Printer error");
+            return r.json();
         })
-            .then(resp => {
-                if (!resp.ok) throw new Error('Printer API returned ' + resp.status);
-                return resp.json();
-            })
-            .then(json => {
-                console.log('Print API success', json);
-                showNotification('Printed on ' + (json.printer || 'printer'), 'success');
-            })
-            .catch(err => {
-                console.warn('Print API failed, falling back to client print:', err);
-                const billHTML = `
-                <div style="font-family: monospace;font-size:12px; padding:10px; width:220px;">
-                    <h3 style="text-align:center; margin:0;">Grill N Shakes</h3>
-                    <p style="text-align:center; margin:0;">Order Receipt</p>
-                    <hr>
-                    <p><strong>Order ID:</strong> ${order.orderId}</p>
-                    <p><strong>Name:</strong> ${order.customer}</p>
-                    <p><strong>Phone:</strong> ${order.phone}</p>
-                    ${order.address ? `<p><strong>Address:</strong> ${order.address}</p>` : ""}
-                    <p><strong>Order Time:</strong> ${order.timestamp ? new Date(order.timestamp).toLocaleString() : ''}</p>
-                    <hr>
-                    <table style="width:100%; font-size:14px;">
-                       ${(order.items || []).map(item => {
-                           const name = (item.name || '').substring(0, 16).padEnd(16);
-                           const qty = ('x' + (item.quantity || 1)).padEnd(4);
-                           const price = ('₹' + (item.price || 0).toFixed(0)).padStart(6);
-
-                           return `<div>${name}${qty}${price}</div>`;
-                       }).join('')}
-                    </table>
-                    <hr>
-                    <p style="text-align:right; font-size:16px;">
-                        <strong>Total: ₹${(order.total || 0).toFixed(2)}</strong>
-                    </p>
-                    <hr>
-                    <p style="text-align:center;">Thank you! Visit Again.</p>
-                </div>
-            `;
-                const printWindow = window.open("", "", "width=300,height=600");
-                printWindow.document.write(`
-<html>
-<head>
-<title>Print Bill</title>
-<style>
-body{
-margin:0;
-font-family:monospace;
-font-size:12px;
-width:220px;
-}
-</style>
-</head>
-<body>${billHTML}</body>
-</html>
-`); printWindow.document.close();
-                printWindow.focus();
-                printWindow.print();
-                printWindow.close();
-            });
-    } catch (ex) {
-        console.error('printThermalBill exception', ex);
-    }
+        .then(res => {
+            console.log("Printed:", res);
+        })
+        .catch(err => {
+            console.error("Print failed:", err);
+        });
 }

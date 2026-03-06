@@ -8,13 +8,8 @@ namespace ScurryDashboard.Helpers
         [StructLayout(LayoutKind.Sequential)]
         private class DOCINFOA
         {
-            [MarshalAs(UnmanagedType.LPStr)]
             public string pDocName;
-
-            [MarshalAs(UnmanagedType.LPStr)]
             public string pOutputFile;
-
-            [MarshalAs(UnmanagedType.LPStr)]
             public string pDataType;
         }
 
@@ -41,10 +36,7 @@ namespace ScurryDashboard.Helpers
 
         public static bool SendBytesToPrinter(string printerName, byte[] bytes)
         {
-            if (string.IsNullOrWhiteSpace(printerName))
-                throw new ArgumentException("Printer name required");
-
-            IntPtr hPrinter = IntPtr.Zero;
+            IntPtr hPrinter;
 
             if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
                 return false;
@@ -74,6 +66,7 @@ namespace ScurryDashboard.Helpers
             bool success = WritePrinter(hPrinter, pUnmanagedBytes, bytes.Length, out int written);
 
             Marshal.FreeCoTaskMem(pUnmanagedBytes);
+
             EndPagePrinter(hPrinter);
             EndDocPrinter(hPrinter);
             ClosePrinter(hPrinter);
