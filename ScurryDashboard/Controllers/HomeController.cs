@@ -568,19 +568,43 @@ namespace ScurryDashboard.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdateCoffeeOrderStatus([FromBody] updateCoffeeDetails updatedCoffeeOrder)
+        public async Task<IActionResult> UpdateCoffeeOrderStatus([FromBody] System.Text.Json.JsonElement payload)
+        {
+            try
+            {
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var model = JsonSerializer.Deserialize<ScurryDashboard.Models.UpdateCoffeeDetails>(payload.GetRawText(), options);
+                if (model == null) return BadRequest("Invalid payload");
+
+                var client = _httpClientFactory.CreateClient();
+                var apiUrl = apiPort + "/api/Order/UpdateCoffeeOrder";
+
+                var content = JsonContent.Create(model); 
+                var response = await client.PostAsync(apiUrl, content);
+                if (response.IsSuccessStatusCode) return Ok();
+                var body = await response.Content.ReadAsStringAsync();
+                return StatusCode((int)response.StatusCode, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in UpdateCoffeeOrderStatus");
+                return StatusCode(500, "Error updating coffee order");
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RejectCoffeeOrder([FromBody] string OrderId)
         {
             var client = _httpClientFactory.CreateClient();
-            var apiUrl = apiPort + "/api/Order/UpdateCoffeeOrder?UserName=" + userName;
-            string jwtToken = token;
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+            var apiUrl = apiPort + "/api/Order/RejectCoffeeOrder";
 
-            var json = JsonSerializer.Serialize(updatedCoffeeOrder);
+            var json = JsonSerializer.Serialize(OrderId);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
             var response = await client.PostAsync(apiUrl, content);
+
             if (response.IsSuccessStatusCode)
                 return Ok();
-            return StatusCode((int)response.StatusCode, "Failed to update coffee order");
+            return StatusCode((int)response.StatusCode, "Failed to delete order");
         }
         #endregion
 
