@@ -52,7 +52,10 @@ $(document).ready(function () {
         getOrdersFromRestaurant();
         loadOrderHistory(true);
         //setupInfiniteScroll();
-    }, 13000);
+        getOrdersFromCoffee();
+    }, 10000);
+    
+
 
     //initializeConnectionUI();
 
@@ -717,7 +720,6 @@ $(document).on('click', '#bill-modal', function (e) {
         closeBillModal();
     }
 });
-
 function buildBillUI(billData) {
 
     if (!billData || billData.length === 0) {
@@ -743,7 +745,7 @@ function buildBillUI(billData) {
 
     let billHtml = `
     <div id="printable-bill" style="
-        width:260px;
+        width:220px;
         font-family:'Courier New', monospace;
         margin: 0 auto;
         font-size: 14px;
@@ -825,6 +827,7 @@ function buildBillUI(billData) {
     $("#bill-content").html(billHtml);
     $("#bill-modal").fadeIn(300);
 }
+
 
 $(document).on('click', '.btn-view-bill', function () {
     const orderId = $(this).attr('data-order-id');
@@ -2979,7 +2982,7 @@ function createOrderCard(order) {
                 <div><strong>Phone:</strong> ${order.phone}</div>
                 <div><strong>Delivery Time:</strong> ${order.deliveryTime}</div>
                 <div><strong>Platform:</strong> ${order.platform.charAt(0).toUpperCase() + order.platform.slice(1)}</div>
-                <div><strong>Notes:</strong> ${order.specialInstructions}</div>
+                <div><strong>Notes:</strong> ${order.specialInstructions || '-'}</div>
             </div>
           <div class="order-items">
     ${order.items.map(item => `
@@ -3012,25 +3015,30 @@ function createOrderCard(order) {
                 
                 ${/* COFFEE ORDER BUTTONS */ ''}
                 ${order.platform === 'coffee' ? `
-                    ${order.status === 'new' ? `
-                        <button class="btn btn-success btn-action" onclick="acceptCoffeeOrder('${order.orderId}')">
-                            <i class="fas fa-check"></i> Accept
-                        </button>
-                        <button class="btn btn-danger btn-action" onclick="rejectOrder('${order.orderId}')">
-                            <i class="fas fa-times"></i> Reject
-                        </button>
-                    ` : ''}
-                    ${order.status === 'confirmed' ? `
-                        <button class="btn btn-info btn-action" onclick="deliverCoffeeOrder('${order.orderId}')">
-                            <i class="fas fa-coffee"></i> Mark Delivered
-                        </button>
-                    ` : ''}
-                    ${order.status === 'completed' ? `
-                        <span class="text-success font-weight-bold">
-                            <i class="fas fa-check-double"></i> Delivered
-                        </span>
-                    ` : ''}
-                ` : ''}
+
+    ${order.status === 'new' ? `
+        <button class="btn btn-success btn-action" onclick="updateCoffeeOrderStatus('${order.orderId}','confirmed')">
+            <i class="fas fa-check"></i> Accept
+        </button>
+
+        <button class="btn btn-danger btn-action" onclick="RejectCoffeeOrder('${order.orderId}')">
+            <i class="fas fa-times"></i> Reject
+        </button>
+    ` : ''}
+
+    ${order.status === 'confirmed' ? `
+        <button class="btn btn-info btn-action" onclick="updateCoffeeOrderStatus('${order.orderId}','completed')">
+            <i class="fas fa-coffee"></i> Mark Delivered
+        </button>
+    ` : ''}
+
+    ${order.status === 'completed' ? `
+        <span class="text-success font-weight-bold">
+            <i class="fas fa-check-double"></i> Delivered
+        </span>
+    ` : ''}
+
+` : ''}
                 
                 ${/* REGULAR RESTAURANT ORDERS */ ''}
 
@@ -3306,9 +3314,9 @@ function refreshAllPlatforms() {
     //getOrdersFromRestaurant();
     //getOrdersFromZomato();
     //getOrdersFromSwiggy();
-    //getOrdersFromCoffee();
+    getOrdersFromCoffee();
 }
-
+getOrdersFromCoffee();
 // UPDATE ORDER STATUS ON PLATFORM
 function updateOrderStatusOnPlatform(orderId, status, platform) {
 
@@ -3419,7 +3427,7 @@ function updateRestaurantOrderStatus(orderId, status) {
 }
 
 
-function rejectOrder(orderId) {
+function RejectCoffeeOrder(orderId) {
     if (!confirm('Are you sure you want to reject this order?')) {
         return;
     }
@@ -3431,7 +3439,7 @@ function rejectOrder(orderId) {
         const order = ordersData[orderIndex];
 
         $.ajax({
-            url: "/Home/RejectOnlineOrder",
+            url: "/Home/RejectCoffeeOrder",
             type: "POST",
             contentType: "application/json; charset=utf-8",
             data: JSON.stringify(orderId),
@@ -3635,48 +3643,87 @@ window.restaurantDashboard = {
     updateCoffeeOrderStatus
 };
 
+function mapCoffeeStatus(apiStatus) {
 
+    switch (apiStatus) {
+
+        case 'Order In Progress':
+            return 'new';
+
+        case 'Out for delivery':
+            return 'confirmed';
+
+        case 'Delivered':
+            return 'confirmed';
+
+        default:
+            return 'new';
+    }
+}
 function getOrdersFromCoffee() {
+
     $.ajax({
         url: '/Home/GetCoffeeOrders',
         method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        contentType: 'application/json',
+
         success: function (data) {
 
+            const groupedOrders = {};
 
-            const coffeeOrders = data.map(order => ({
-                orderId: order.orderNumber,
-                platform: 'coffee',
-                customer: order.customerName || 'Walk-in Customer',
-                phone: order.customerPhone || 'N/A',
-                items: [{
+            data.forEach(order => {
+
+                if (!groupedOrders[order.orderNumber]) {
+
+                    groupedOrders[order.orderNumber] = {
+
+                        orderId: order.orderNumber,
+                        platform: 'coffee',
+                        customer: order.customerName || 'Walk-in Customer',
+                        phone: order.customerPhone || 'N/A',
+                        items: [],
+                        total: 0,
+                        status: mapCoffeeStatus(order.orderStatus),
+                        timestamp: new Date(order.orderDate),
+                        deliveryTime: '5-10 min',
+                        address: 'Pickup',
+                        specialInstructions: order.notes
+                    };
+                }
+
+                groupedOrders[order.orderNumber].items.push({
+
+                    itemId: order.id,
                     name: order.coffeeName,
                     quantity: order.quantity,
-                    price: order.price,
-                    description: order.description
-                }],
-                total: order.totalPrice,
-                status: 'new',
-                timestamp: new Date(order.orderDate),
-                deliveryTime: '5-10 min',
-                address: 'Pickup'
-            }));
+                    price: order.price
 
-            const existingOrderIds = ordersData.map(order => order.orderId);
-            const newOrders = coffeeOrders.filter(order => !existingOrderIds.includes(order.orderId));
+                });
 
-            ordersData = [...newOrders, ...ordersData];
-            renderOrders();
-            updateNewOrdersBadge();
+                groupedOrders[order.orderNumber].total += order.price * order.quantity;
+
+            });
+
+            const coffeeOrders = Object.values(groupedOrders);
+
+            const existingOrderIds = ordersData.map(o => String(o.orderId));
+
+            const newOrders = coffeeOrders.filter(o =>
+                !existingOrderIds.includes(String(o.orderId))
+            );
 
             if (newOrders.length > 0) {
+
+                ordersData.unshift(...newOrders);
+
+                renderOrders();
+                updateNewOrdersBadge();
+
                 showNotification(`${newOrders.length} new coffee orders received!`, 'success');
             }
         },
-        error: function (xhr, status, error) {
 
+        error: function () {
             showNotification('Failed to fetch coffee orders', 'error');
         }
     });
@@ -3685,68 +3732,94 @@ function getOrdersFromCoffee() {
 
 // Coffee Orders section 
 
+function groupCoffeeOrders(data) {
 
+    const groupedOrders = {};
+
+    data.forEach(order => {
+
+        if (!groupedOrders[order.orderNumber]) {
+
+            groupedOrders[order.orderNumber] = {
+                orderId: order.orderNumber,
+                platform: 'coffee',
+                customer: order.customerName || 'Walk-in Customer',
+                phone: order.customerPhone || 'N/A',
+                items: [],
+                total: 0,
+                status: order.orderStatus,
+                timestamp: new Date(order.orderDate),
+                deliveryTime: '5-10 min',
+                address: 'Pickup'
+            };
+        }
+
+        groupedOrders[order.orderNumber].items.push({
+            itemId: order.id,
+            name: order.coffeeName,
+            quantity: order.quantity,
+            price: order.price
+        });
+
+        groupedOrders[order.orderNumber].total += order.price * order.quantity;
+
+    });
+
+    return Object.values(groupedOrders);
+}
 function updateCoffeeOrderStatus(orderId, newStatus) {
-    renderOrders();
 
-    const orderIndex = ordersData.findIndex(o => o.orderId === orderId);
+    const orderIndex = ordersData.findIndex(o => String(o.orderId) === String(orderId));
+
     if (orderIndex === -1) {
         showNotification(`Order #${orderId} not found`, 'error');
         return;
     }
 
-    const order = ordersData[orderIndex];
-
-
     const statusMap = {
-        'confirmed': 'Accepted',
-        'completed': 'Delivered'
+        confirmed: 2,
+        completed: 4
     };
-
-    const apiStatus = statusMap[newStatus];
-
-    if (!apiStatus) {
-        showNotification('Invalid status', 'error');
-        return;
-    }
-
 
     const payload = {
         orderId: orderId,
-        status: apiStatus
+        status: statusMap[newStatus]
     };
 
-
     $.ajax({
+
         url: '/Home/UpdateCoffeeOrderStatus',
         method: 'POST',
         contentType: 'application/json; charset=utf-8',
         data: JSON.stringify(payload),
-        success: function (response) {
-            ordersData[orderIndex].status = newStatus;
 
+        success: function () {
+
+            ordersData[orderIndex].status = newStatus;
 
             renderOrders();
             updateNewOrdersBadge();
 
-
             const messages = {
-                'confirmed': ' Order accepted successfully',
-                'completed': ' Order delivered successfully'
+                confirmed: 'Order accepted successfully ☕',
+                completed: 'Order delivered successfully ✅'
             };
+
             showNotification(messages[newStatus], 'success');
 
-
             if (newStatus === 'completed') {
-                //setTimeout(() => {
+
+                setTimeout(() => {
+
                     ordersData.splice(orderIndex, 1);
                     renderOrders();
                     updateNewOrdersBadge();
-                //}, 2000);
+
+                }, 1000);
             }
         },
-        error: function (xhr, status, error) {
 
+        error: function () {
             showNotification(`Failed to update order #${orderId}`, 'error');
         }
     });
@@ -3782,62 +3855,41 @@ $(document).on('click', '#btnViewHistory', function () {
 });
 
 //Auto refresh every 30 seconds
-//setInterval(function () {
-//    getOrdersFromRestaurant();
 
-//}, 3000);
 function printThermalBill(order) {
-    const billHTML = `
-        <div style="font-family: monospace; padding:10px; width:280px;">
-            <h3 style="text-align:center; margin:0;">Grill N Shakes</h3>
-            <p style="text-align:center; margin:0;">Order Receipt</p>
-            <hr>
 
-            <p><strong>Order ID:</strong> ${order.orderId}</p>
-            <p><strong>Name:</strong> ${order.customer}</p>
-            <p><strong>Phone:</strong> ${order.phone}</p>
-            ${order.address ? `<p><strong>Address:</strong> ${order.address}</p>` : ""}
-            <p><strong>Order Time:</strong> ${order.timestamp.toLocaleString()}</p>
+    const payload = {
+        OrderId: order.orderId || "",
+        Phone: order.phone || "",
+        Address: order.address || "",
+        OrderTime: order.timestamp ? new Date(order.timestamp) : new Date(),
 
-            <hr>
+        Items: (order.items || []).map(it => ({
+            Name: it.name || it.itemName || "-",
+            Quantity: it.quantity || ((it.fullPortion || 0) + (it.halfPortion || 0)) || 1,
+            Price: Number(it.price || 0)
+        })),
 
-            <table style="width:100%; font-size:14px;">
-                ${order.items
-            .map(
-                (item) =>
-                    `<tr>
-                          <td>${item.name}</td>
-                          <td style="text-align:right;">x${item.quantity}</td>
-                          <td style="text-align:right;">₹${item.price}</td>
-                      </tr>`
-            )
-            .join("")}
-            </table>
+        Subtotal: Number(order.total) || 0,
+        Discount: Number(order.discountAmount || order.discount || 0),
+        Total: Number(order.total) || 0,
 
-            <hr>
+        PrinterName: "Everycom-58-Series"
+    };
 
-            <p style="text-align:right; font-size:16px;">
-                <strong>Total: ₹${order.total}</strong>
-            </p>
-            <hr>
-            <p style="text-align:center;">Thank you! Visit Again.</p>
-        </div>
-    `;
-
-    const printWindow = window.open("", "", "width=300,height=600");
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Print Bill</title>
-                <style>body { margin:0; font-family: monospace; }</style>
-            </head>
-            <body>${billHTML}</body>
-        </html>
-    `);
-    printWindow.document.close();
-    //setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-    //}, 200);
+    fetch('/api/print/PrintBill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+        .then(r => {
+            if (!r.ok) throw new Error("Printer error");
+            return r.json();
+        })
+        .then(res => {
+            console.log("Printed:", res);
+        })
+        .catch(err => {
+            console.error("Print failed:", err);
+        });
 }

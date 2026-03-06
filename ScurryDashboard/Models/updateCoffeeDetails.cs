@@ -1,8 +1,8 @@
 ﻿namespace ScurryDashboard.Models
 {
-    public class updateCoffeeDetails
+    public class UpdateCoffeeDetails
     {
-        public string orderId { get; set; }
-        public int status { get; set; }
+        public string OrderId { get; set; }
+        public int Status { get; set; }
     }
 }
