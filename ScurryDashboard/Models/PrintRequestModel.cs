@@ -6,6 +6,7 @@ namespace ScurryDashboard.Models
     public class PrintRequestModel
     {
         public string OrderId { get; set; }
+        public string Name { get; set; }
         public string Phone { get; set; }
         public string Address { get; set; }
         public DateTime OrderTime { get; set; }
