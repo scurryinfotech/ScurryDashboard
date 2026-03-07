@@ -3857,9 +3857,10 @@ $(document).on('click', '#btnViewHistory', function () {
 //Auto refresh every 30 seconds
 
 function printThermalBill(order) {
-
+    
     const payload = {
         OrderId: order.orderId || "",
+        Name: order.customer || "",
         Phone: order.phone || "",
         Address: order.address || "",
         OrderTime: order.timestamp ? new Date(order.timestamp) : new Date(),

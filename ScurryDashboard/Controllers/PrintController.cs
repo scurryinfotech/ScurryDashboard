@@ -49,6 +49,7 @@ namespace ScurryDashboard.Controllers
 
                 sb.AppendLine($"Order : {req.OrderId}");
                 sb.AppendLine($"Time  : {req.OrderTime:dd-MM-yyyy HH:mm}");
+                sb.AppendLine($"Order : {req.Name}");
                 sb.AppendLine($"Phone : {req.Phone}");
 
                 if (!string.IsNullOrEmpty(req.Address))
