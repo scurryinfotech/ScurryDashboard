@@ -1,0 +1,137 @@
+﻿@{
+    ViewData["Title"] = "Staff Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        .salary-cell {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            color: var(--gns-accent);
+        }
+    </style>
+}
+
+<!-- Page Header -->
+<div class="gns-page-header">
+    <div>
+        <h1><i class="fas fa-users mr-2" style="color:var(--gns-accent)"></i>Staff Management</h1>
+        <p>Add, edit and manage your restaurant team members</p>
+    </div>
+    <button class="btn-gns btn-gns-primary" id="btnAddStaff">
+        <i class="fas fa-plus"></i> Add Staff
+    </button>
+</div>
+
+<!-- Stats -->
+<div class="gns-stats-row" id="staffStats">
+    <div class="gns-stat">
+        <div class="gns-stat__icon"><i class="fas fa-users"></i></div>
+        <div><div class="gns-stat__val" id="statTotal">—</div><div class="gns-stat__label">Total Staff</div></div>
+    </div>
+    <div class="gns-stat">
+        <div class="gns-stat__icon"><i class="fas fa-circle-check"></i></div>
+        <div><div class="gns-stat__val" id="statActive">—</div><div class="gns-stat__label">Active</div></div>
+    </div>
+    <div class="gns-stat">
+        <div class="gns-stat__icon"><i class="fas fa-money-bill-wave"></i></div>
+        <div><div class="gns-stat__val" id="statSalary">—</div><div class="gns-stat__label">Total Salary / Month</div></div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="gns-card" style="position:relative">
+    <div class="gns-loader" id="tblLoader"><div class="gns-spinner"></div></div>
+    <div class="gns-card__header">
+        <h2 class="gns-card__title">All Staff</h2>
+        <div style="display:flex;gap:8px">
+            <button class="btn-gns btn-gns-ghost" id="btnRefresh"><i class="fas fa-rotate-right"></i></button>
+        </div>
+    </div>
+    <div class="gns-card__body" style="padding:0">
+        <div class="table-responsive">
+            <table id="staffTable" class="table dataTable" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Department</th>
+                        <th>Phone</th>
+                        <th>Salary</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── Add/Edit Modal ──────────────────────────────────────────── -->
+<div class="modal fade" id="staffModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="staffModalTitle">Add Staff</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="staffId" />
+                <div class="gns-form-grid">
+                    <div class="gns-form-group">
+                        <label>Full Name *</label>
+                        <input type="text" id="sfFullName" class="gns-form-control" placeholder="e.g. Ahmad Raza" />
+                    </div>
+                    <div class="gns-form-group">
+                        <label>Role *</label>
+                        <select id="sfRole" class="gns-form-control"><option value="">— Select Role —</option></select>
+                    </div>
+                    <div class="gns-form-group">
+                        <label>Phone</label>
+                        <input type="text" id="sfPhone" class="gns-form-control" placeholder="03xx-xxxxxxx" />
+                    </div>
+                    <div class="gns-form-group">
+                        <label>Email</label>
+                        <input type="email" id="sfEmail" class="gns-form-control" placeholder="email@example.com" />
+                    </div>
+                    <div class="gns-form-group">
+                        <label>CNIC</label>
+                        <input type="text" id="sfCNIC" class="gns-form-control" placeholder="xxxxx-xxxxxxx-x" />
+                    </div>
+                    <div class="gns-form-group">
+                        <label>Department</label>
+                        <input type="text" id="sfDept" class="gns-form-control" placeholder="e.g. Kitchen" />
+                    </div>
+                    <div class="gns-form-group">
+                        <label>Salary (PKR)</label>
+                        <input type="number" id="sfSalary" class="gns-form-control" placeholder="0.00" />
+                    </div>
+                    <div class="gns-form-group">
+                        <label>Join Date</label>
+                        <input type="date" id="sfJoinDate" class="gns-form-control" />
+                    </div>
+                </div>
+                <div class="gns-form-group">
+                    <label>Status</label>
+                    <select id="sfIsActive" class="gns-form-control" style="max-width:220px">
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-gns btn-gns-ghost" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn-gns btn-gns-primary" id="btnSaveStaff">
+                    <i class="fas fa-floppy-disk"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Staff.js" asp-append-version="true"></script>
+}
