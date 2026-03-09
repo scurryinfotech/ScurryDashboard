@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/StyleSheet1.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Dashboard.css" asp-append-version="true" />
+
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/dataTables.bootstrap4.min.css">
@@ -15,49 +17,96 @@
     @RenderSection("Styles", required: false)
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white header">
-        <a class="navbar-brand logo font-weight-bold" href="#">Grill N Shakes Dashboard</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainNavbar"
-                aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
 
-        <div class="collapse navbar-collapse" id="mainNavbar">
-            <ul class="navbar-nav ml-auto align-items-center">
-                <li id="manageLink" class="nav-item mr-2">
-                    <a class="btn btn-outline-primary btn-lg" asp-controller="Home" asp-action="ManageMenu">Manage menu</a>
-                </li>
-                <li id="homeLink" class="nav-item mr-2">
-                    <a class="btn btn-outline-primary btn-lg" asp-controller="Home" asp-action="Index">Dashboard</a>
-                </li>
-                <li class="nav-item" id="switchOnOff">
-                    <button id="HomeBtn"
-                            class="btn btn-lg connect"
-                            type="button"
-                            aria-pressed="false"
-                            aria-live="polite"
-                            data-state="disconnected"
-                            title="Connect or disconnect home delivery orders">
-                        <span class="btn-text">Connect Home Delivery</span>
-                    </button>
-                    <small id="HomeStatus" aria-hidden="false">Disconnected</small>
-                </li>
-            </ul>
+    <!-- ── Sidebar ───────────────────────────────────────────── -->
+    <aside class="gns-sidebar" id="gnsSidebar">
+        <div class="gns-sidebar__brand">
+            <span class="gns-sidebar__brand-icon"><i class="fas fa-fire-flame-curved"></i></span>
+            <span class="gns-sidebar__brand-text">Grill<em>N</em>Shakes</span>
         </div>
-    </nav>
-    <div class="container">
-        <main role="main" style="width:100%">
 
+        <nav class="gns-sidebar__nav">
+            <div class="gns-sidebar__section-label">Overview</div>
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")"
+               asp-controller="Home" asp-action="Index">
+                <i class="fas fa-gauge-high"></i><span>Dashboard</span>
+            </a>
+
+            <div class="gns-sidebar__section-label">Management</div>
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Staff" ? "active" : "")"
+               asp-controller="Staff" asp-action="Index">
+                <i class="fas fa-users"></i><span>Staff</span>
+            </a>
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "ShopExpenses" ? "active" : "")"
+               asp-controller="ShopExpenses" asp-action="Index">
+                <i class="fas fa-store"></i><span>Shop Expenses</span>
+            </a>
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "DailyExpenses" ? "active" : "")"
+               asp-controller="DailyExpenses" asp-action="Index">
+                <i class="fas fa-receipt"></i><span>Daily Expenses</span>
+            </a>
+
+            <div class="gns-sidebar__section-label">Orders</div>
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "ManageMenu" ? "active" : "")"
+               asp-controller="Home" asp-action="ManageMenu">
+                <i class="fas fa-utensils"></i><span>Manage Menu</span>
+            </a>
+        </nav>
+
+        <div class="gns-sidebar__footer">
+            <div class="gns-sidebar__user">
+                <div class="gns-sidebar__avatar">GN</div>
+                <div>
+                    <div class="gns-sidebar__username">Admin</div>
+                    <div class="gns-sidebar__role">System User</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── Main Wrapper ──────────────────────────────────────── -->
+    <div class="gns-main" id="gnsMain">
+
+        <!-- Top Bar -->
+        <header class="gns-topbar">
+            <button class="gns-topbar__toggle" id="sidebarToggle" title="Toggle Sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="gns-topbar__breadcrumb">
+                <span>@ViewData["Title"]</span>
+            </div>
+            <div class="gns-topbar__actions">
+                <!-- Home Delivery Toggle -->
+                <button id="HomeBtn" class="gns-delivery-btn" data-state="disconnected"
+                        title="Connect/Disconnect Home Delivery">
+                    <i class="fas fa-motorcycle"></i>
+                    <span class="gns-delivery-btn__text">Home Delivery</span>
+                    <span class="gns-delivery-btn__dot"></span>
+                </button>
+                <small id="HomeStatus" class="gns-delivery-status">Disconnected</small>
+            </div>
+        </header>
+
+        <!-- Toast Container -->
+        <div id="toastContainer" class="gns-toast-container" aria-live="polite"></div>
+
+        <!-- Page Content -->
+        <main class="gns-content">
             @RenderBody()
         </main>
     </div>
-    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.15/js/dataTables.bootstrap4.min.js"></script>
-    <script src="~/js/home.js" asp-append-version="true"></script>
 
+    <!-- ── Scripts ────────────────────────────────────────────── -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/home.js" asp-append-version="true"></script>
+    @* <script src="~/js/Dailyexpenses.js" asp-append-version="true"></script>
+    <script src="~/js/Staff.js" asp-append-version="true"></script>
+    <script src="~/js/Shopexpenses.js" asp-append-version="true"></script> *@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
