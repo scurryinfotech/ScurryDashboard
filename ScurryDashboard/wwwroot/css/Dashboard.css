@@ -312,7 +312,7 @@ body.sidebar-collapsed .gns-main {
 /* ── Content ─────────────────────────────────────────────────── */
 .gns-content {
     flex: 1;
-    padding: 28px 28px 40px;
+    padding: 8px 8px 20px;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -775,7 +775,7 @@ select.gns-form-control option {
     display: none;
     position: absolute;
     inset: 0;
-    background: rgba(15,14,13,.7);
+    background:#ffffff;
     border-radius: var(--gns-radius);
     align-items: center;
     justify-content: center;

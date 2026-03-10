@@ -6,25 +6,25 @@
 <style>
     /* Restaurant / high-tech theme (scoped to this page to avoid overriding global nav styles) */
     :root {
-        --accent1: #6a5af9;
+            --accent1: #6a5af9;
         --accent2: #d96ef7;
         --glass: rgba(255,255,255,0.06);
-        --card-bg: rgba(255,255,255,0.04);
-        --card-border: rgba(255,255,255,0.08);
-        --muted: rgba(255,255,255,0.75);
+        --card-bg: #ffffff;
+            --card-border: #e6e6e6;
+            --muted: #666;
     }
 
     /* Scope page-level body styles to the page wrapper so navbar buttons are unaffected */
-    #manageMenuPage {
-        background: linear-gradient(135deg, #3d3ec9 0%, #7a4bd6 40%, #a44fe0 100%);
-        color: #f3f4f8;
-        min-height: 100vh;
-        font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial;
-        -webkit-font-smoothing: antialiased;
-    }
+        #manageMenuPage {
+            background-color: #ffffff;
+            color: #000000;
+            min-height: 100vh;
+            font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            -webkit-font-smoothing: antialiased;
+        }
 
     #manageMenuPage.container.py-3 {
-        padding-top: 28px;
+        padding-top: 20px;
         padding-bottom: 28px;
     }
 
@@ -44,14 +44,14 @@
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            color: #fff;
+            color: #000;
             box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 -6px 18px rgba(255,255,255,0.02);
             transform: translateZ(0);
         }
 
         #manageMenuPage .page-title h1 {
             margin: 0;
-            color: #fff;
+            color: #000;
             font-weight: 600;
             letter-spacing: .2px;
         }
@@ -59,12 +59,12 @@
         #manageMenuPage .page-title p {
             margin: 0;
             font-size: 0.85rem;
-            color: rgba(255,255,255,0.85);
+                    color: #000;
         }
 
     /* Card / glass look */
     #manageMenuPage .card {
-        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+                background: #ffffff;
         border: 1px solid var(--card-border);
         box-shadow: 0 8px 30px rgba(0,0,0,0.35);
         transition: transform 280ms cubic-bezier(.2,.9,.3,1), box-shadow 280ms;
@@ -80,7 +80,7 @@
     #manageMenuPage .card-header {
         background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
         border-bottom: 1px solid rgba(255,255,255,0.03);
-        color: #fff;
+        color: #000;
         font-weight: 600;
     }
 
@@ -97,7 +97,7 @@
     }
 
     #manageMenuPage .table tbody td {
-        color: rgba(255,255,255,0.95);
+                color: #000;
         vertical-align: middle;
         border-top: 1px solid rgba(255,255,255,0.03);
     }
@@ -117,7 +117,7 @@
 
     #manageMenuPage .badge-success {
         background: #28a745 !important;
-        color: #fff;
+        color: #000;
         box-shadow: 0 2px 8px rgba(40,167,69,0.12);
     }
 
@@ -135,7 +135,7 @@
     }
 
     #manageMenuPage .btn-outline-primary {
-        color: #fff;
+                color: #000;
         border-color: rgba(255,255,255,0.12);
         background: rgba(255,255,255,0.02);
     }
@@ -149,7 +149,7 @@
     #manageMenuPage .modal-content {
         background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015));
         border: 1px solid rgba(255,255,255,0.04);
-        color: #fff;
+        color: #000;
     }
 
     #manageMenuPage .modal-header.bg-primary {

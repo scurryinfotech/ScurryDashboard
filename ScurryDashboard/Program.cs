@@ -31,9 +31,9 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-app.UseRouting();      // ← pehle
+app.UseRouting();     
 
-app.UseSession();      // ← UseRouting ke baad zaroor
+app.UseSession();     
 
 app.UseAuthorization();
 
@@ -41,4 +41,4 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.Run();
+app.Run(); 

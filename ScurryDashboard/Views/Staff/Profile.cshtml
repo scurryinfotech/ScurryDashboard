@@ -1,0 +1,702 @@
+﻿@{
+    ViewData["Title"] = "Employee Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        .emp-hero {
+            background: linear-gradient(135deg, var(--gns-surface) 0%, var(--gns-surface-2) 100%);
+            border: 1px solid var(--gns-border);
+            border-radius: var(--gns-radius);
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .emp-hero::after {
+                content: '';
+                position: absolute;
+                top: -60px;
+                right: -60px;
+                width: 220px;
+                height: 220px;
+                background: radial-gradient(circle, var(--gns-accent-glow), transparent 65%);
+                pointer-events: none;
+            }
+
+        .emp-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--gns-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Syne',sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #000;
+            flex-shrink: 0;
+            box-shadow: 0 6px 24px var(--gns-accent-glow);
+        }
+
+        .emp-name {
+            font-family: 'Syne',sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0 0 4px;
+        }
+
+        .emp-meta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .emp-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .82rem;
+            color: var(--gns-text-muted);
+        }
+
+            .emp-meta-item i {
+                color: var(--gns-accent);
+                width: 14px;
+            }
+
+        .emp-salary {
+            font-family: 'Syne',sans-serif;
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--gns-accent);
+            text-align: right;
+        }
+
+            .emp-salary small {
+                display: block;
+                font-family: 'DM Sans',sans-serif;
+                font-size: .72rem;
+                font-weight: 400;
+                color: var(--gns-text-muted);
+            }
+
+        .month-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+            .month-bar select {
+                max-width: 140px;
+            }
+
+        .att-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(140px,1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .att-stat {
+            background: var(--gns-surface);
+            border: 1px solid var(--gns-border);
+            border-radius: var(--gns-radius);
+            padding: 18px;
+            text-align: center;
+        }
+
+        .att-stat__val {
+            font-family: 'Syne',sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .att-stat__label {
+            font-size: .72rem;
+            color: var(--gns-text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .color-green {
+            color: #22c55e
+        }
+
+        .color-red {
+            color: #ef4444
+        }
+
+        .color-yellow {
+            color: #f59e0b
+        }
+
+        .color-blue {
+            color: #818cf8
+        }
+
+        .color-orange {
+            color: var(--gns-accent)
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7,1fr);
+            gap: 6px;
+            margin-bottom: 24px;
+        }
+
+        .cal-header {
+            text-align: center;
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--gns-text-muted);
+            padding: 4px 0;
+        }
+
+        .cal-day {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid var(--gns-border);
+            background: var(--gns-surface-2);
+            color: var(--gns-text-muted);
+            transition: transform .15s;
+            position: relative;
+        }
+
+            .cal-day:hover {
+                transform: scale(1.08);
+                z-index: 2;
+            }
+
+            .cal-day.empty {
+                background: transparent;
+                border-color: transparent;
+                cursor: default;
+            }
+
+            .cal-day.present {
+                background: rgba(34,197,94,.40);
+                border-color: #22c55eaa;
+                color: #4ade80;
+            }
+
+            .cal-day.absent {
+                background: rgba(239,68,68,.38);
+                border-color: #ef4444aa;
+                color: #f87171;
+            }
+
+            .cal-day.leave {
+                background: rgba(245,158,11,.38);
+                border-color: #f59e0baa;
+                color: #fbbf24;
+            }
+
+            .cal-day.halfday {
+                background: rgba(129,140,248,.38);
+                border-color: #818cf8aa;
+                color: #a5b4fc;
+            }
+
+            .cal-day.today {
+                box-shadow: 0 0 0 2px var(--gns-accent);
+            }
+
+        .cal-legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .cal-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .75rem;
+            color: var(--gns-text-muted);
+        }
+
+        .cal-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        .dot-present {
+            background: #22c55e
+        }
+
+        .dot-absent {
+            background: #ef4444
+        }
+
+        .dot-leave {
+            background: #f59e0b
+        }
+
+        .dot-halfday {
+            background: #818cf8
+        }
+
+        .status-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .status-btn {
+            flex: 1;
+            min-width: 100px;
+            padding: 12px;
+            border-radius: var(--gns-radius-sm);
+            border: 2px solid var(--gns-border);
+            background: var(--gns-surface-2);
+            color: var(--gns-text-muted);
+            font-family: 'DM Sans',sans-serif;
+            font-size: .85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all .2s;
+        }
+
+            .status-btn.sel-present {
+                border-color: #22c55e;
+                background: rgba(34,197,94,.15);
+                color: #22c55e
+            }
+
+            .status-btn.sel-absent {
+                border-color: #ef4444;
+                background: rgba(239,68,68,.12);
+                color: #ef4444
+            }
+
+            .status-btn.sel-leave {
+                border-color: #f59e0b;
+                background: rgba(245,158,11,.15);
+                color: #f59e0b
+            }
+
+            .status-btn.sel-halfday {
+                border-color: #818cf8;
+                background: rgba(129,140,248,.12);
+                color: #818cf8
+            }
+
+        .payroll-paid {
+            background: rgba(34,197,94,.15);
+            color: #22c55e;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: .72rem;
+            font-weight: 600;
+        }
+
+        .payroll-pending {
+            background: rgba(245,158,11,.15);
+            color: #f59e0b;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: .72rem;
+            font-weight: 600;
+        }
+
+        .emp-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--gns-border);
+        }
+
+        .emp-tab {
+            padding: 10px 20px;
+            border-radius: var(--gns-radius-sm) var(--gns-radius-sm) 0 0;
+            font-family: 'DM Sans',sans-serif;
+            font-size: .88rem;
+            font-weight: 600;
+            color: var(--gns-text-muted);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            transition: all .2s;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+
+            .emp-tab.active {
+                color: var(--gns-accent);
+                border-bottom-color: var(--gns-accent);
+            }
+
+        .emp-tab-pane {
+            display: none;
+        }
+
+            .emp-tab-pane.active {
+                display: block;
+            }
+    </style>
+}
+
+<div style="margin-bottom:16px">
+    <a asp-controller="Staff" asp-action="Index" class="btn-gns btn-gns-ghost">
+        <i class="fas fa-arrow-left"></i> Back to Staff
+    </a>
+</div>
+
+<div class="emp-hero">
+    <div class="emp-avatar" id="empAvatar">—</div>
+    <div class="emp-info" style="flex:1">
+        <h1 class="emp-name" id="empName">Loading…</h1>
+        <div class="emp-meta">
+            <span class="emp-meta-item"><i class="fas fa-briefcase"></i><span id="empRole">—</span></span>
+            <span class="emp-meta-item"><i class="fas fa-building"></i><span id="empDept">—</span></span>
+            <span class="emp-meta-item"><i class="fas fa-phone"></i><span id="empPhone">—</span></span>
+            <span class="emp-meta-item"><i class="fas fa-envelope"></i><span id="empEmail">—</span></span>
+            <span class="emp-meta-item"><i class="fas fa-calendar"></i>Joined <span id="empJoin">—</span></span>
+        </div>
+    </div>
+    <div class="emp-salary"><small>Basic Salary / Month</small><span id="empSalary">—</span></div>
+</div>
+
+<div class="month-bar">
+    <label style="color:var(--gns-text-muted);font-size:.82rem;font-weight:600">Viewing:</label>
+    <select id="selMonth" class="gns-form-control">
+        <option value="1">January</option>
+        <option value="2">February</option>
+        <option value="3">March</option>
+        <option value="4">April</option>
+        <option value="5">May</option>
+        <option value="6">June</option>
+        <option value="7">July</option>
+        <option value="8">August</option>
+        <option value="9">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+    </select>
+    <select id="selYear" class="gns-form-control" style="max-width:100px"></select>
+    <button class="btn-gns btn-gns-primary" id="btnLoad"><i class="fas fa-rotate-right"></i> Load</button>
+    <button class="btn-gns btn-gns-ghost" id="btnMarkToday"><i class="fas fa-plus"></i> Mark Today</button>
+    <button class="btn-gns btn-gns-ghost" id="btnGeneratePayroll"><i class="fas fa-file-invoice-dollar"></i> Generate Payroll</button>
+    <a class="btn-gns btn-gns-primary" href="/Salary/PaymentHistory?staffId=@ViewBag.StaffId"
+       style="text-decoration:none">
+        <i class="fas fa-clock-rotate-left"></i> Payment History
+    </a>
+</div>
+
+<div class="att-stats">
+    <div class="att-stat"><div class="att-stat__val color-green" id="sumPresent">—</div><div class="att-stat__label">Present</div></div>
+    <div class="att-stat"><div class="att-stat__val color-red" id="sumAbsent">—</div><div class="att-stat__label">Absent</div></div>
+    <div class="att-stat"><div class="att-stat__val color-yellow" id="sumLeave">—</div><div class="att-stat__label">Leave</div></div>
+    <div class="att-stat"><div class="att-stat__val color-blue" id="sumHalf">—</div><div class="att-stat__label">Half Day</div></div>
+    <div class="att-stat"><div class="att-stat__val color-orange" id="sumOT">—</div><div class="att-stat__label">OT Hours</div></div>
+</div>
+
+<div class="emp-tabs">
+    <button class="emp-tab active" data-tab="tabCalendar"><i class="fas fa-calendar-days mr-1"></i>Attendance Calendar</button>
+    <button class="emp-tab" data-tab="tabPayroll"><i class="fas fa-money-check-dollar mr-1"></i>Payroll History</button>
+</div>
+
+<div class="emp-tab-pane active" id="tabCalendar">
+    <div class="gns-card">
+        <div class="gns-card__body">
+            <div class="cal-legend">
+                <div class="cal-legend-item"><div class="cal-dot dot-present"></div>Present</div>
+                <div class="cal-legend-item"><div class="cal-dot dot-absent"></div>Absent</div>
+                <div class="cal-legend-item"><div class="cal-dot dot-leave"></div>Leave</div>
+                <div class="cal-legend-item"><div class="cal-dot dot-halfday"></div>Half Day</div>
+            </div>
+            <div class="cal-grid" id="calGrid">
+                <div class="cal-header">Sun</div><div class="cal-header">Mon</div>
+                <div class="cal-header">Tue</div><div class="cal-header">Wed</div>
+                <div class="cal-header">Thu</div><div class="cal-header">Fri</div>
+                <div class="cal-header">Sat</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="emp-tab-pane" id="tabPayroll">
+    <div class="gns-card">
+        <div class="gns-card__header"><h2 class="gns-card__title">Payroll History</h2></div>
+        <div class="gns-card__body" style="padding:0">
+            <div class="table-responsive">
+                <table class="table dataTable" id="payrollTable" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Month/Year</th>
+                            <th>Basic</th>
+                            <th>Present</th>
+                            <th>Absent</th>
+                            <th>OT Hrs</th>
+                            <th>OT Amt</th>
+                            <th>Deductions</th>
+                            <th>Net Salary</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Modal -->
+<div class="modal fade" id="attModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Mark Attendance</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="gns-form-group">
+                    <label>Date</label>
+                    <input type="date" id="attDate" class="gns-form-control" />
+                </div>
+                <div class="gns-form-group">
+                    <label>Status</label>
+                    <div class="status-btns">
+                        <button class="status-btn" data-status="Present" onclick="selectStatus(this)"><i class="fas fa-circle-check mr-1"></i>Present</button>
+                        <button class="status-btn" data-status="Absent" onclick="selectStatus(this)"><i class="fas fa-circle-xmark mr-1"></i>Absent</button>
+                        <button class="status-btn" data-status="Leave" onclick="selectStatus(this)"><i class="fas fa-umbrella-beach mr-1"></i>Leave</button>
+                        <button class="status-btn" data-status="HalfDay" onclick="selectStatus(this)"><i class="fas fa-circle-half-stroke mr-1"></i>Half Day</button>
+                    </div>
+                </div>
+                <div class="gns-form-grid">
+                    <div class="gns-form-group"><label>Check In</label><input type="time" id="attCheckIn" class="gns-form-control" /></div>
+                    <div class="gns-form-group"><label>Check Out</label><input type="time" id="attCheckOut" class="gns-form-control" /></div>
+                </div>
+                <div class="gns-form-group">
+                    <label>Overtime Hours</label>
+                    <input type="number" id="attOT" class="gns-form-control" value="0" min="0" max="24" step="0.5" />
+                </div>
+                <div class="gns-form-group">
+                    <label>Notes</label>
+                    <textarea id="attNotes" class="gns-form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-gns btn-gns-ghost" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn-gns btn-gns-primary" id="btnSaveAtt"><i class="fas fa-floppy-disk"></i> Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            const STAFF_ID = @ViewBag.StaffId;
+            const MONTHS   = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+            const now      = new Date();
+            let selStatus  = '';
+            let payrollDt;
+
+            const $yr = $('#selYear');
+            for (let y = now.getFullYear(); y >= now.getFullYear()-3; y--)
+                $yr.append(`<option value="${y}">${y}</option>`);
+            $('#selMonth').val(now.getMonth()+1);
+            $yr.val(now.getFullYear());
+
+            $('.emp-tab').on('click', function () {
+                $('.emp-tab').removeClass('active'); $('.emp-tab-pane').removeClass('active');
+                $(this).addClass('active'); $('#'+$(this).data('tab')).addClass('active');
+            });
+
+                    function loadProfile() {
+            const m = $('#selMonth').val(),
+                  y = $('#selYear').val();
+
+                    $.ajax({
+            url: `/Attendance/GetProfile?staffId=${STAFF_ID}&month=${m}&year=${y}`,
+            success: d => {
+                console.log("API SUCCESS:", d);
+                renderHero(d.staffInfo);
+                renderStats(d.monthlySummary);
+                renderCalendar(d.monthAttendance, +m, +y);
+                renderPayroll(d.payrollHistory);
+            },
+            error: xhr => {
+                console.log("ERROR STATUS:", xhr.status);
+                console.log("ERROR RESPONSE:", xhr.responseText);
+                gnsToast(xhr.responseJSON?.message || 'Load failed.', 'error');
+            }
+        });
+        }
+
+            function renderHero(s) {
+                if (!s) return;
+                const ini = s.fullName.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+                $('#empAvatar').text(ini);
+                $('#empName').text(s.fullName);
+                $('#empRole').text(s.roleName||'—');
+                $('#empDept').text(s.department||'—');
+                $('#empPhone').text(s.phone||'—');
+                $('#empEmail').text(s.email||'—');
+                $('#empJoin').text(s.joinDate ? new Date(s.joinDate).toLocaleDateString('en-PK',{year:'numeric',month:'short',day:'numeric'}) : '—');
+                $('#empSalary').text('Rs '+Number(s.salary).toLocaleString());
+                document.title = s.fullName+' — Profile';
+            }
+
+            function renderStats(sm) {
+                const z = v => sm ? v : '0';
+                $('#sumPresent').text(sm ? sm.presentDays : '0');
+                $('#sumAbsent').text(sm  ? sm.absentDays  : '0');
+                $('#sumLeave').text(sm   ? sm.leaveDays   : '0');
+                $('#sumHalf').text(sm    ? sm.halfDays     : '0');
+                $('#sumOT').text(sm      ? Number(sm.totalOvertimeHours).toFixed(1) : '0');
+            }
+
+            function renderCalendar(attendance, month, year) {
+                       const lookup = {};
+        (attendance || []).forEach(a => {
+            const key = a.attendanceDate.split('T')[0];
+            lookup[key] = a;
+        });  const firstDay    = new Date(year, month-1, 1).getDay();
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const todayStr    = new Date().toISOString().substring(0,10);
+                $('#calGrid .cal-day').remove();
+                for (let i=0; i<firstDay; i++) $('#calGrid').append('<div class="cal-day empty"></div>');
+                for (let d=1; d<=daysInMonth; d++) {
+                    const ds  = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const rec = lookup[ds];
+                    const st  = rec ? rec.status.toLowerCase() : '';
+                    const ico = {present:'✓',absent:'✗',leave:'⛱',halfday:'½'}[st] || '';
+                    const ot  = rec && rec.overtimeHours>0 ? `<span style="font-size:.45rem;color:var(--gns-accent)">+${rec.overtimeHours}h OT</span>` : '';
+                    const cls = ['cal-day',st,ds===todayStr?'today':''].filter(Boolean).join(' ');
+                    $('#calGrid').append(`
+                        <div class="${cls}" title="${ds}${rec?' — '+rec.status:' — Not Marked'}"
+                             onclick="openMarkModal('${ds}','${rec?rec.status:''}','${rec?(rec.checkIn||''):''}','${rec?(rec.checkOut||''):''}','${rec?rec.overtimeHours:0}')">
+                            <span>${d}</span>
+                            <span style="font-size:.5rem">${ico}</span>
+                            ${ot}
+                        </div>`);
+                }
+            }
+
+            function renderPayroll(data) {
+                if (payrollDt) payrollDt.destroy();
+                payrollDt = $('#payrollTable').DataTable({
+                    data: data||[], destroy:true, pageLength:6, order:[[0,'desc']],
+                    columns:[
+                        {data:null, render:r=>`${MONTHS[r.payMonth]} ${r.payYear}`},
+                        {data:'basicSalary',    render:v=>'Rs '+Number(v).toLocaleString()},
+                        {data:'presentDays'},
+                        {data:'absentDays'},
+                        {data:'overtimeHours',  render:v=>Number(v).toFixed(1)+'h'},
+                        {data:'overtimeAmount', render:v=>'Rs '+Number(v).toLocaleString()},
+                        {data:'deductions',     render:v=>`<span style="color:#ef4444">-Rs ${Number(v).toLocaleString()}</span>`},
+                        {data:'netSalary',      render:v=>`<span style="font-family:Syne,sans-serif;font-weight:800;color:var(--gns-accent)">Rs ${Number(v).toLocaleString()}</span>`},
+                        {data:'status',         render:v=>v==='Paid'?'<span class="payroll-paid">Paid</span>':'<span class="payroll-pending">Pending</span>'},
+                               
+        { data: null, orderable: false, render: r => `
+            <div class="tbl-actions">
+                ${r.status === 'Pending' || r.status === 'Partial' ? `
+                    <button class="tbl-btn tbl-btn-edit" onclick="markPaid(${r.payrollId})"
+                        title="Mark Paid" style="background:rgba(99,102,241,.1);color:#818cf8">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="tbl-btn tbl-btn-edit" onclick="openPayModal(${r.payrollId})"
+                        title="Pay Salary" style="background:rgba(34,197,94,.1);color:#22c55e">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>`
+                : `<small style="color:var(--gns-text-muted)">${r.paidOn || ''}</small>`}
+            </div>`
+        }
+                    ]
+                });
+            }
+
+            window.openMarkModal = function(date,status,ci,co,ot) {
+                $('#attDate').val(date); $('#attCheckIn').val(ci); $('#attCheckOut').val(co);
+                $('#attOT').val(ot||0); $('#attNotes').val('');
+                selStatus = status;
+                $('.status-btn').removeClass('sel-present sel-absent sel-leave sel-halfday');
+                if (status) $(`.status-btn[data-status="${status}"]`).addClass(`sel-${status.toLowerCase()}`);
+                $('#attModal').modal('show');
+            };
+
+            window.selectStatus = function(el) {
+                selStatus = $(el).data('status');
+                $('.status-btn').removeClass('sel-present sel-absent sel-leave sel-halfday');
+                $(el).addClass(`sel-${selStatus.toLowerCase()}`);
+            };
+
+            $('#btnMarkToday').on('click', () => openMarkModal(new Date().toISOString().substring(0,10),'','','',0));
+
+            $('#btnSaveAtt').on('click', function () {
+                if (!selStatus) { gnsToast('Select a status.','error'); return; }
+                if (!$('#attDate').val()) { gnsToast('Date required.','error'); return; }
+                const payload = { 
+                    staffId:STAFF_ID,
+                    attendanceDate:$('#attDate').val(), 
+                    status:selStatus,
+                    checkIn:$('#attCheckIn').val()||null,
+                    checkOut:$('#attCheckOut').val()||null,
+                    overtimeHours:parseFloat($('#attOT').val())||0,
+                    notes:$('#attNotes').val()||null, modifiedBy:'Admin' };
+                $(this).prop('disabled',true);
+                $.ajax({ url:'/Attendance/Mark', method:'POST', contentType:'application/json', data:JSON.stringify(payload),
+                    success:res=>{
+                        $('#attModal').modal('hide');
+                        gnsToast(res.message,'success');
+                        loadProfile();
+                    },
+                    error:xhr=>gnsToast(xhr.responseJSON?.message||'Failed.','error'),
+                    complete:()=>$('#btnSaveAtt').prop('disabled',false)
+                });
+            });
+
+            $('#btnGeneratePayroll').on('click', function () {
+                const m=+$('#selMonth').val(), y=+$('#selYear').val();
+                gnsConfirm(`Generate payroll for ${MONTHS[m]} ${y}?`, () => {
+                    $.ajax({ url:'/Payroll/Generate', method:'POST', contentType:'application/json',
+                        data:JSON.stringify({staffId:STAFF_ID,month:m,year:y,overtimeRatePerHour:150,modifiedBy:'Admin'}),
+                        success:res=>{ gnsToast(`Net: Rs ${Number(res.netSalary).toLocaleString()}`, 'success'); loadProfile(); $('.emp-tab[data-tab="tabPayroll"]').trigger('click'); },
+                        error:xhr=>gnsToast(xhr.responseJSON?.message||'Failed.','error')
+                    });
+                });
+            });
+
+            window.markPaid = function(id) {
+                gnsConfirm('Mark as Paid?', () => {
+                    $.ajax({ url:`/Payroll/MarkPaid?payrollId=${id}&modifiedBy=Admin`, method:'PUT',
+                        success:res=>{ gnsToast(res.message,'success'); loadProfile(); },
+                        error:xhr=>gnsToast(xhr.responseJSON?.message||'Failed.','error')
+                    });
+                });
+            };
+
+            $('#btnLoad').on('click', loadProfile);
+            loadProfile();
+        });
+    </script>
+}

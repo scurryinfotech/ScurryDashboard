@@ -29,6 +29,10 @@
             <div class="gns-sidebar__section-label">Overview</div>
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")"
                asp-controller="Home" asp-action="Index">
+                <i class="fa-solid fa-house"></i><span>Home</span>
+            </a>
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "DashboardContrller" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")"
+               asp-controller="Dashboard" asp-action="Index">
                 <i class="fas fa-gauge-high"></i><span>Dashboard</span>
             </a>
 
@@ -37,6 +41,13 @@
                asp-controller="Staff" asp-action="Index">
                 <i class="fas fa-users"></i><span>Staff</span>
             </a>
+            <li class="nav-item">
+                <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Salary" ? "active" : "")"
+                   asp-controller="Salary" asp-action="Index">
+                    <i class="fas fa-money-check-dollar"></i>
+                    <span>Salary</span>
+                </a>
+            </li>
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "ShopExpenses" ? "active" : "")"
                asp-controller="ShopExpenses" asp-action="Index">
                 <i class="fas fa-store"></i><span>Shop Expenses</span>

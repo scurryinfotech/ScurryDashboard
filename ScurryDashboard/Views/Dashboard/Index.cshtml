@@ -377,8 +377,8 @@
 
             let lineChart, donutChart;
 
-            // ── PKR formatter ─────────────────────────────────────────
-            const pkr = v => 'PKR ' + Number(v).toLocaleString();
+            // ── Rs formatter ─────────────────────────────────────────
+            const Rs = v => 'Rs ' + Number(v).toLocaleString();
 
             // ── Last 7 days labels ────────────────────────────────────
             function last7Days() {
@@ -449,13 +449,13 @@
                                 borderColor: 'rgba(255,255,255,0.1)',
                                 borderWidth: 1,
                                 callbacks: {
-                                    label: ctx => ' ' + pkr(ctx.parsed.y)
+                                    label: ctx => ' ' + Rs(ctx.parsed.y)
                                 }
                             }
                         },
                         scales: {
                             x: { ticks: { color: '#8a8070' }, grid: { color: 'rgba(255,255,255,0.04)' } },
-                            y: { ticks: { color: '#8a8070', callback: v => 'PKR ' + Number(v).toLocaleString() },
+                            y: { ticks: { color: '#8a8070', callback: v => 'Rs ' + Number(v).toLocaleString() },
                                  grid: { color: 'rgba(255,255,255,0.04)' } }
                         }
                     }
@@ -491,7 +491,7 @@
                                 borderColor: 'rgba(255,255,255,0.1)',
                                 borderWidth: 1,
                                 callbacks: {
-                                    label: ctx => ' ' + pkr(ctx.parsed)
+                                    label: ctx => ' ' + Rs(ctx.parsed)
                                 }
                             }
                         }
@@ -514,7 +514,7 @@
                     <tr>
                         <td style="padding:10px 14px;color:var(--gns-text)">${x.title}</td>
                         <td style="padding:10px 14px;color:var(--gns-text-muted)">${x.category || '—'}</td>
-                        <td style="padding:10px 14px;font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">PKR ${Number(x.amount).toLocaleString()}</td>
+                        <td style="padding:10px 14px;font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">Rs ${Number(x.amount).toLocaleString()}</td>
                         <td style="padding:10px 14px;color:var(--gns-text-muted)">${x.expenseDate ? x.expenseDate.substring(0,10) : '—'}</td>
                     </tr>`).join('');
                 $(`#${tbodyId}`).html(rows);
@@ -535,7 +535,7 @@
                         { data: 'department', defaultContent: '—' },
                         { data: 'phone',      defaultContent: '—' },
                         { data: 'salary',
-                          render: v => `<span style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">PKR ${Number(v).toLocaleString()}</span>` },
+                          render: v => `<span style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">Rs ${Number(v).toLocaleString()}</span>` },
                         { data: 'isActive',
                           render: v => v
                             ? '<span class="gns-badge gns-badge-active">Active</span>'
@@ -566,12 +566,12 @@
                 $('#dsTotalStaff').text(staffData.length);
                 $('#dsActiveStaff').text(activeStaff + ' active');
                 $('#dsActiveStaffCount').text(activeStaff);
-                $('#dsTotalShopExp').text(pkr(totalShop));
+                $('#dsTotalShopExp').text(Rs(totalShop));
                 $('#dsShopExpCount').text(shopData.length + ' records');
-                $('#dsTotalDailyExp').text(pkr(totalDaily));
+                $('#dsTotalDailyExp').text(Rs(totalDaily));
                 $('#dsDailyExpCount').text(dailyData.length + ' records');
-                $('#dsTodayExp').text(pkr(todayExp));
-                $('#dsTotalSalary').text(pkr(totalSalary));
+                $('#dsTodayExp').text(Rs(todayExp));
+                $('#dsTotalSalary').text(Rs(totalSalary));
 
                 // ── Charts ──
                 buildLineChart(shopData, dailyData);
