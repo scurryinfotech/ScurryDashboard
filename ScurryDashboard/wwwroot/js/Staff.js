@@ -1,13 +1,10 @@
-﻿
-$(function () {
+﻿$(function () {
 
-    const CTRL = '/Staff';   // MVC controller base
+    const CTRL = '/Staff';
     let dt;
 
-    // ── Load roles dropdown ───────────────────────────────────
     function loadRoles() {
         $.getJSON('/Roles/GetAll', function (data) {
-            debugger
             const $sel = $('#sfRole').find('option:not(:first)').remove().end();
             $.each(data, function (_, r) {
                 $sel.append(`<option value="${r.roleId}">${r.roleName}</option>`);
@@ -15,20 +12,27 @@ $(function () {
         });
     }
 
-    // ── Init DataTable ────────────────────────────────────────
     function initTable(data) {
         if (dt) dt.destroy();
         dt = $('#staffTable').DataTable({
             data, destroy: true, pageLength: 10, order: [[0, 'desc']],
             columns: [
                 { data: 'staffId' },
-                { data: 'fullName' },
+                {
+                    data: 'fullName',
+                    render: (v, _, row) =>
+                        `<a href='/Staff/Profile/${row.staffId}'
+                            style='color:var(--gns-accent);font-weight:600;text-decoration:none'>${v}</a>`
+                },
                 { data: 'roleName', defaultContent: '—' },
                 { data: 'department', defaultContent: '—' },
                 { data: 'phone', defaultContent: '—' },
                 {
                     data: 'salary',
-                    render: v => `<span style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">PKR ${Number(v).toLocaleString()}</span>`
+                    render: v =>
+                        `<span style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">
+                            Rs ${Number(v).toLocaleString()}
+                        </span>`
                 },
                 {
                     data: 'isActive',
@@ -38,10 +42,30 @@ $(function () {
                 },
                 {
                     data: 'staffId', orderable: false,
-                    render: id => `<div class="tbl-actions">
-                    <button class="tbl-btn tbl-btn-edit"   onclick="editStaff(${id})"   title="Edit"><i class="fas fa-pen"></i></button>
-                    <button class="tbl-btn tbl-btn-delete" onclick="deleteStaff(${id})" title="Delete"><i class="fas fa-trash"></i></button>
-                  </div>` }
+                    render: id => `
+                        <div class="tbl-actions">
+                            <button class="tbl-btn tbl-btn-edit"
+                                onclick="editStaff(${id})" title="Edit">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button class="tbl-btn tbl-btn-delete"
+                                onclick="deleteStaff(${id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <a class="tbl-btn tbl-btn-edit"
+                                href="/Salary/PaymentHistory?staffId=${id}"
+                                title="Payment History"
+                                style="background:rgba(129,140,248,.1);color:#818cf8">
+                                <i class="fas fa-clock-rotate-left"></i>
+                            </a>
+                            <a class="tbl-btn tbl-btn-edit"
+                                href="/Salary/Index"
+                                title="Salary Dashboard"
+                                style="background:rgba(34,197,94,.1);color:#22c55e">
+                                <i class="fas fa-money-check-dollar"></i>
+                            </a>
+                        </div>`
+                }
             ]
         });
 
@@ -49,7 +73,7 @@ $(function () {
         const salary = data.filter(s => s.isActive).reduce((a, s) => a + (s.salary || 0), 0);
         $('#statTotal').text(data.length);
         $('#statActive').text(active);
-        $('#statSalary').text('PKR ' + Number(salary).toLocaleString());
+        $('#statSalary').text('Rs ' + Number(salary).toLocaleString());
     }
 
     // ── GET /Staff/GetAll ─────────────────────────────────────
@@ -57,7 +81,10 @@ $(function () {
         $('#tblLoader').addClass('show');
         $.ajax({
             url: `${CTRL}/GetAll`, method: 'GET',
-            success: data => { initTable(data); $('#tblLoader').removeClass('show'); },
+            success: data => {
+                initTable(data);
+                $('#tblLoader').removeClass('show');
+            },
             error: xhr => {
                 gnsToast(xhr.responseJSON?.message || 'Load failed.', 'error');
                 $('#tblLoader').removeClass('show');
@@ -70,7 +97,8 @@ $(function () {
         $('#staffId').val('');
         $('#staffModalTitle').text('Add Staff');
         $('#sfFullName,#sfPhone,#sfEmail,#sfCNIC,#sfDept,#sfSalary,#sfJoinDate').val('');
-        $('#sfRole').val(''); $('#sfIsActive').val('true');
+        $('#sfRole').val('');
+        $('#sfIsActive').val('true');
         $('#staffModal').modal('show');
     });
 
@@ -133,17 +161,17 @@ $(function () {
                 loadStaff();
             },
             error: xhr => gnsToast(xhr.responseJSON?.message || 'Save failed.', 'error'),
-            complete: () => $('#btnSaveStaff').prop('disabled', false)
+            complete: () => $('#btnSaveStaff')
+                .prop('disabled', false)
                 .html('<i class="fas fa-floppy-disk"></i> Save')
         });
     });
 
-    // ── DELETE /Staff/Delete?id=5 ─────────────────────────────
+  
     window.deleteStaff = function (id) {
         gnsConfirm('Delete this staff member?', function () {
             $.ajax({
-                url: `${CTRL}/Delete?id=${id}&modifiedBy=Admin`,
-                method: 'DELETE',
+                url: `${CTRL}/Delete?id=${id}&modifiedBy=Admin`, method: 'DELETE',
                 success: res => { gnsToast(res.message, 'success'); loadStaff(); },
                 error: xhr => gnsToast(xhr.responseJSON?.message || 'Delete failed.', 'error')
             });

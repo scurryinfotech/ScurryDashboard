@@ -17,7 +17,7 @@ $(function () {
                 { data: 'category', defaultContent: '—' },
                 {
                     data: 'amount',
-                    render: v => `<span style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">PKR ${Number(v).toLocaleString()}</span>`
+                    render: v => `<span style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">Rs ${Number(v).toLocaleString()}</span>`
                 },
                 { data: 'expenseDate', render: v => v ? v.substring(0, 10) : '—' },
                 { data: 'paidBy', defaultContent: '—' },
@@ -45,8 +45,8 @@ $(function () {
             const d = new Date(x.expenseDate);
             return d >= weekAgo && d <= today;
         }).reduce((a, x) => a + (x.amount || 0), 0);
-        $('#deStatToday').text('PKR ' + Number(todayAmt).toLocaleString());
-        $('#deStatWeek').text('PKR ' + Number(weekAmt).toLocaleString());
+        $('#deStatToday').text('Rs ' + Number(todayAmt).toLocaleString());
+        $('#deStatWeek').text('Rs ' + Number(weekAmt).toLocaleString());
     }
 
     function load() {

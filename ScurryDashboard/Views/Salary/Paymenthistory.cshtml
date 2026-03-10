@@ -1,0 +1,275 @@
+﻿@{
+    ViewData["Title"] = "Payment History";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        /* ── Hero ─────────────────────────────────────────────────────── */
+        .ph-hero {
+            background: linear-gradient(135deg, var(--gns-surface), var(--gns-surface-2));
+            border: 1px solid var(--gns-border);
+            border-radius: var(--gns-radius);
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .ph-hero::after {
+                content: '';
+                position: absolute;
+                top: -50px;
+                right: -50px;
+                width: 200px;
+                height: 200px;
+                background: radial-gradient(circle, var(--gns-accent-glow), transparent 65%);
+                pointer-events: none;
+            }
+
+        .ph-avatar {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: var(--gns-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Syne',sans-serif;
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #000;
+            flex-shrink: 0;
+            box-shadow: 0 4px 18px var(--gns-accent-glow);
+        }
+
+        .ph-name {
+            font-family: 'Syne',sans-serif;
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .ph-meta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+            .ph-meta span {
+                font-size: .8rem;
+                color: var(--gns-text-muted);
+            }
+
+            .ph-meta strong {
+                color: var(--gns-text);
+            }
+
+        .ph-outstanding {
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .ph-outstanding-val {
+            font-family: 'Syne',sans-serif;
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #ef4444;
+        }
+
+        .ph-outstanding-lbl {
+            font-size: .68rem;
+            color: var(--gns-text-muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        /* ── Payroll Month Cards ─────────────────────────────────────── */
+        .pm-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 28px;
+        }
+
+        .pm-card {
+            background: var(--gns-surface);
+            border: 1px solid var(--gns-border);
+            border-radius: var(--gns-radius);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .pm-card__month {
+            min-width: 130px;
+            font-family: 'Syne',sans-serif;
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .pm-card__figs {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        .pm-fig {
+            text-align: center;
+        }
+
+        .pm-fig-val {
+            font-family: 'Syne',sans-serif;
+            font-size: .95rem;
+            font-weight: 800;
+        }
+
+        .pm-fig-lbl {
+            font-size: .62rem;
+            color: var(--gns-text-muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .pm-card__bal {
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .pm-bal-val {
+            font-family: 'Syne',sans-serif;
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
+        .pm-bal-lbl {
+            font-size: .68rem;
+            color: var(--gns-text-muted);
+            margin-top: 2px;
+        }
+
+        /* ── Type badges ─────────────────────────────────────────────── */
+        .tbadge-advance {
+            background: rgba(245,158,11,.15);
+            color: #f59e0b;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-size: .7rem;
+            font-weight: 700;
+        }
+
+        .tbadge-partial {
+            background: rgba(99,102,241,.12);
+            color: #818cf8;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-size: .7rem;
+            font-weight: 700;
+        }
+
+        .tbadge-full {
+            background: rgba(34,197,94,.12);
+            color: #22c55e;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-size: .7rem;
+            font-weight: 700;
+        }
+
+        /* reuse sbadge from salary dashboard */
+        .sbadge-pending {
+            background: rgba(239,68,68,.15);
+            color: #ef4444;
+        }
+
+        .sbadge-partial {
+            background: rgba(245,158,11,.15);
+            color: #f59e0b;
+        }
+
+        .sbadge-paid {
+            background: rgba(99,102,241,.12);
+            color: #818cf8;
+        }
+
+        .sbadge {
+            display: inline-block;
+            padding: 3px 11px;
+            border-radius: 99px;
+            font-size: .7rem;
+            font-weight: 700;
+        }
+    </style>
+}
+
+<div style="margin-bottom:14px">
+    <a asp-controller="Salary" asp-action="Index" class="btn-gns btn-gns-ghost">
+        <i class="fas fa-arrow-left"></i> Back to Salary Dashboard
+    </a>
+</div>
+
+<!-- ── Hero ── -->
+<div class="ph-hero">
+    <div class="ph-avatar" id="phAvatar">—</div>
+    <div>
+        <div class="ph-name" id="phName">Loading…</div>
+        <div class="ph-meta">
+            <span>Dept: <strong id="phDept">—</strong></span>
+            <span>Basic: <strong id="phBasic">—</strong></span>
+        </div>
+    </div>
+    <div class="ph-outstanding">
+        <div class="ph-outstanding-lbl">Total Outstanding</div>
+        <div class="ph-outstanding-val" id="phOut">—</div>
+    </div>
+</div>
+
+<!-- ── Payroll Month Cards ── -->
+<div style="margin-bottom:10px">
+    <span style="font-size:.78rem;font-weight:700;color:var(--gns-text-muted);text-transform:uppercase;letter-spacing:.07em">
+        Payroll Records
+    </span>
+</div>
+<div class="pm-cards" id="pmCards">
+    <div style="text-align:center;padding:20px;color:var(--gns-text-muted)">
+        <i class="fas fa-spinner fa-spin"></i> Loading…
+    </div>
+</div>
+
+<!-- ── All Transactions Table ── -->
+<div class="gns-card" style="margin-top:10px">
+    <div class="gns-card__header">
+        <h2 class="gns-card__title">
+            <i class="fas fa-list-ul mr-2" style="color:var(--gns-accent)"></i>All Payment Transactions
+        </h2>
+    </div>
+    <div class="gns-card__body" style="padding:0">
+        <table class="table dataTable" id="txnTable" style="width:100%">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Month</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Type</th>
+                    <th>Reason</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>window.HISTORY_STAFF_ID = @ViewBag.StaffId;</script>
+    <script src="~/js/paymentHistory.js" asp-append-version="true"></script>
+}

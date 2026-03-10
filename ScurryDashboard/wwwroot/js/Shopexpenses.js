@@ -16,7 +16,7 @@ $(function () {
                 { data: 'category', defaultContent: '—' },
                 {
                     data: 'amount',
-                    render: v => `<span style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">PKR ${Number(v).toLocaleString()}</span>`
+                    render: v => `<span style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">Rs ${Number(v).toLocaleString()}</span>`
                 },
                 { data: 'expenseDate', render: v => v ? v.substring(0, 10) : '—' },
                 {
@@ -36,12 +36,12 @@ $(function () {
 
         $('#seStatTotal').text(data.length);
         const total = data.reduce((a, x) => a + (x.amount || 0), 0);
-        $('#seStatSum').text('PKR ' + Number(total).toLocaleString());
+        $('#seStatSum').text('Rs ' + Number(total).toLocaleString());
         const month = data.filter(x => {
             const d = new Date(x.expenseDate);
             return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         }).reduce((a, x) => a + (x.amount || 0), 0);
-        $('#seStatMonth').text('PKR ' + Number(month).toLocaleString());
+        $('#seStatMonth').text('Rs ' + Number(month).toLocaleString());
     }
 
     function load() {
