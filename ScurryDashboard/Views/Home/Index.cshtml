@@ -5,124 +5,301 @@
 @section styles {
     <style>
 
+        .dashboard-section {
+            margin-bottom: 28px;
+        }
+
+        .section-title {
+            font-family: 'Syne', sans-serif;
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--gns-text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 2px 12px;
+            border-bottom: 1px solid var(--gns-border);
+            margin-bottom: 16px;
+        }
+
+            .section-title span {
+                font-size: 1rem;
+            }
+
+        /* ══════════════════════════════════════════════════════════
+           ORDERS GRID
+        ══════════════════════════════════════════════════════════ */
+        .orders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 14px;
+        }
+
+        .gns-revenue-bar {
+            background: var(--gns-surface);
+            border: 1px solid var(--gns-border);
+            border-radius: var(--gns-radius);
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+        }
+
+        .gns-revenue-bar__left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .gns-revenue-bar__icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gns-accent-dim);
+            color: var(--gns-accent);
+            border-radius: var(--gns-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .gns-revenue-bar__label {
+            font-size: .78rem;
+            color: var(--gns-text-muted);
+            margin-bottom: 2px;
+        }
+
+        .gns-revenue-bar__title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--gns-text);
+            margin: 0;
+        }
+
+        .gns-revenue-bar__right {
+            text-align: right;
+        }
+
+        .gns-revenue-bar__amount {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--gns-accent);
+            line-height: 1;
+        }
+
+        .gns-revenue-bar__count {
+            font-size: .78rem;
+            color: var(--gns-text-muted);
+            margin-top: 3px;
+        }
+
+
+        .gns-filter-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+            background: var(--gns-surface);
+            border: 1px solid var(--gns-border);
+            border-radius: var(--gns-radius);
+            padding: 14px 18px;
+        }
+
+            .gns-filter-row label {
+                font-size: .75rem;
+                font-weight: 600;
+                letter-spacing: .06em;
+                text-transform: uppercase;
+                color: var(--gns-text-muted);
+                white-space: nowrap;
+            }
+
+            .gns-filter-row input[type="date"] {
+                background: var(--gns-surface-2);
+                border: 1px solid var(--gns-border);
+                border-radius: var(--gns-radius-sm);
+                color: var(--gns-text);
+                padding: 8px 12px;
+                font-family: 'DM Sans', sans-serif;
+                font-size: .88rem;
+                transition: border-color .22s;
+                min-width: 0;
+                flex: 1;
+                max-width: 180px;
+            }
+
+                .gns-filter-row input[type="date"]:focus {
+                    outline: none;
+                    border-color: var(--gns-accent);
+                    box-shadow: 0 0 0 3px var(--gns-accent-dim);
+                }
+
+            .gns-filter-row .filter-sep {
+                color: var(--gns-text-muted);
+                font-size: .85rem;
+            }
+
 
         #bill-modal {
             display: none;
             position: fixed;
-            /* Above everything */
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0,0,0,.55);
+            backdrop-filter: blur(5px);
             overflow-y: auto;
-            background-color: rgba(0,0,0,0.7);
-            padding-top: 40px;
+            padding: 40px 16px;
+            align-items: flex-start;
+            justify-content: center;
         }
 
-            #bill-modal .modal-content {
-                background-color: #fefefe;
-                margin: auto;
-                padding: 0;
-                border: 1px solid #888;
-                width: 90%;
-                max-width: 800px;
-                border-radius: 10px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            }
-
-            #bill-modal .modal-header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 20px;
+            #bill-modal.show {
                 display: flex;
-                justify-content: space-between;
-                align-items: center;
-                border-radius: 10px 10px 0 0;
             }
 
-            #bill-modal .modal-title {
-                margin: 0;
-                font-size: 24px;
+            #bill-modal .modal-content {
+                background: var(--gns-surface);
+                border: 1px solid var(--gns-border);
+                border-radius: var(--gns-radius);
+                width: 100%;
+                max-width: 780px;
+                margin: auto;
+                overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0,0,0,.25);
+                animation: gns-modal-in .25s ease;
             }
 
-            #bill-modal .close-btn {
-                background: none;
-                border: none;
-                color: white;
-                font-size: 32px;
-                cursor: pointer;
-                padding: 0;
-                width: 40px;
-                height: 40px;
-                line-height: 40px;
-                text-align: center;
-                border-radius: 50%;
-                transition: background 0.3s;
+        @@keyframes gns-modal-in {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
             }
 
-                #bill-modal .close-btn:hover {
-                    background: rgba(255,255,255,0.2);
-                }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #bill-modal .modal-header {
+            background: var(--gns-surface-2);
+            border-bottom: 1px solid var(--gns-border);
+            padding: 16px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #bill-modal .modal-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--gns-text);
+            margin: 0;
+        }
+
+        #bill-modal .close-btn {
+            width: 32px;
+            height: 32px;
+            background: none;
+            border: 1px solid var(--gns-border);
+            border-radius: var(--gns-radius-sm);
+            color: var(--gns-text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .2s;
+        }
+
+            #bill-modal .close-btn:hover {
+                background: #ef4444;
+                border-color: #ef4444;
+                color: #fff;
+            }
 
         #bill-content {
-            padding: 20px;
-            max-height: 70vh;
+            padding: 22px;
+            max-height: 62vh;
             overflow-y: auto;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
         }
 
-        /* Bill Styling */
+        #bill-modal .modal-actions {
+            padding: 14px 22px;
+            border-top: 1px solid var(--gns-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            background: var(--gns-surface-2);
+        }
+
+        /* Bill receipt styling */
         .bill {
             font-family: 'Courier New', monospace;
-            background: white;
-            padding: 10px;
-            border: 1px solid #000;
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            width: 100%;
+            max-width: 440px;
+            border-radius: 6px;
         }
 
         .bill-header {
             text-align: center;
-            border-bottom: 2px dashed #333;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
+            border-bottom: 2px dashed #ccc;
+            padding-bottom: 16px;
+            margin-bottom: 16px;
         }
 
         .restaurant-name {
-            font-size: 28px;
+            font-size: 22px;
             font-weight: bold;
-            color: #333;
+            color: #111;
         }
 
         .restaurant-info {
-            font-size: 14px;
-            color: #666;
+            font-size: 12px;
+            color: #777;
+            margin-top: 4px;
         }
 
         .bill-details {
-            margin: 20px 0;
-            padding: 15px;
+            margin: 14px 0;
             background: #f9f9f9;
-            border-radius: 5px;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
         }
 
         .bill-row {
             display: flex;
             justify-content: space-between;
-            padding: 6px 0;
+            padding: 4px 0;
         }
 
         .bill-items {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 5px;
             border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 13px;
         }
 
         .bill-item {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            padding: 6px 0;
             border-bottom: 1px solid #eee;
         }
 
@@ -131,115 +308,163 @@
             }
 
         .bill-total {
-            margin: 20px 0;
-            padding: 20px;
-            background: #f0f0f0;
-            border-radius: 5px;
+            margin: 14px 0;
+            padding: 14px;
+            background: #f5f5f5;
+            border-radius: 4px;
             font-weight: bold;
+            font-size: 13px;
         }
 
         .bill-footer {
             text-align: center;
-            padding-top: 20px;
-            border-top: 2px dashed #333;
-            color: #666;
+            padding-top: 14px;
+            border-top: 2px dashed #ccc;
+            color: #888;
+            font-size: 12px;
         }
 
-        /* Bill Buttons */
-        .btn-print, .btn-view {
-            padding: 12px 30px;
-            font-size: 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            margin: 10px;
-            font-weight: bold;
-        }
-
-        .btn-print {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-        }
-
-        .btn-view {
-            background: linear-gradient(135deg, #f093fb, #f5576c);
-            color: white;
-        }
-
-            .btn-print:hover,
-            .btn-view:hover {
-                transform: translateY(-2px);
-            }
-        /* Payment Modal Overlay (fixed and always on top) */
         #paymentModal.payment-modal-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.45);
+            inset: 0;
+            z-index: 1500;
+            background: rgba(0,0,0,.45);
+            backdrop-filter: blur(4px);
             display: none;
             align-items: center;
             justify-content: center;
-            pointer-events: auto !important;
         }
 
             #paymentModal.payment-modal-overlay.active {
                 display: flex;
             }
 
-        /* Payment Modal Box */
         .payment-modal {
-            background: #fff;
-            width: 420px;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 20px rgba(0,0,0,0.30);
+            background: var(--gns-surface);
+            border: 1px solid var(--gns-border);
+            border-radius: var(--gns-radius);
+            width: 440px;
+            max-width: calc(100vw - 32px);
+            padding: 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25);
+            animation: gns-modal-in .25s ease;
             position: relative;
-            pointer-events: auto !important;
         }
 
-        /* Header */
         .payment-modal-header {
+            margin-bottom: 22px;
             text-align: center;
-            margin-bottom: 20px;
         }
 
-        /* Options */
+            .payment-modal-header h3 {
+                font-family: 'Syne', sans-serif;
+                font-size: 1.1rem;
+                font-weight: 800;
+                color: var(--gns-text);
+                margin: 0 0 4px;
+            }
+
+            .payment-modal-header p {
+                font-size: .82rem;
+                color: var(--gns-text-muted);
+                margin: 0;
+            }
+
         .payment-options {
-            display: flex;
-            justify-content: space-between;
-            gap: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 22px;
         }
 
         .payment-option {
-            border: 2px solid #ccc;
-            padding: 15px;
+            border: 2px solid var(--gns-border);
+            border-radius: var(--gns-radius);
+            padding: 16px 12px;
             text-align: center;
             cursor: pointer;
-            width: 48%;
-            border-radius: 12px;
-            background: #fafafa;
-            transition: 0.25s;
+            background: var(--gns-surface-2);
+            transition: all .22s;
         }
 
             .payment-option:hover {
-                border-color: #00aaff;
+                border-color: var(--gns-accent);
+                background: var(--gns-accent-dim);
             }
 
             .payment-option.selected {
-                border-color: #00aaff;
-                background: #e7f5ff;
+                border-color: var(--gns-accent);
+                background: var(--gns-accent-dim);
+                box-shadow: 0 0 0 3px var(--gns-accent-glow);
             }
 
-        /* Discount Input Fix */
+        .payment-icon {
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+            line-height: 1;
+        }
+
+        .payment-option h4 {
+            font-family: 'Syne', sans-serif;
+            font-size: .88rem;
+            font-weight: 700;
+            color: var(--gns-text);
+            margin: 0 0 2px;
+        }
+
+        .payment-option p {
+            font-size: .75rem;
+            color: var(--gns-text-muted);
+            margin: 0;
+        }
+
+        /* Discount quick buttons */
+        .discount-strip {
+            display: flex;
+            gap: 7px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .discount-option {
+            padding: 5px 13px;
+            border: 1.5px solid var(--gns-border);
+            border-radius: 99px;
+            background: var(--gns-surface-2);
+            color: var(--gns-text-muted);
+            font-size: .78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+            .discount-option:hover,
+            .discount-option.active {
+                border-color: var(--gns-accent);
+                background: var(--gns-accent-dim);
+                color: var(--gns-accent);
+            }
+
+        .gns-discount-label {
+            font-size: .75rem;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--gns-text-muted);
+            display: block;
+            margin-bottom: 6px;
+        }
+
         #discountInput {
             width: 100% !important;
-            padding: 12px !important;
-            border-radius: 6px !important;
-            border: 1px solid #ccc !important;
-            font-size: 16px !important;
-            background: #fff !important;
+            background: var(--gns-surface-2) !important;
+            border: 1px solid var(--gns-border) !important;
+            border-radius: var(--gns-radius-sm) !important;
+            color: var(--gns-text) !important;
+            padding: 10px 14px !important;
+            font-family: 'DM Sans', sans-serif !important;
+            font-size: .9rem !important;
+            transition: border-color .22s, box-shadow .22s !important;
             position: relative !important;
             z-index: 100 !important;
             pointer-events: auto !important;
@@ -247,291 +472,406 @@
 
             #discountInput:focus {
                 outline: none !important;
-                border-color: #008cff !important;
-                box-shadow: 0 0 5px rgba(0,140,255,0.4) !important;
+                border-color: var(--gns-accent) !important;
+                box-shadow: 0 0 0 3px var(--gns-accent-dim) !important;
             }
 
-        #paymentModal {
-            pointer-events: auto !important;
+        .payment-summary {
+            margin-top: 16px;
+            border-top: 1px dashed var(--gns-border);
+            padding-top: 14px;
         }
 
-            #paymentModal * {
-                pointer-events: auto !important;
-            }
-
-
-        /* Payment Modal Buttons */
-        .payment-modal-actions {
-            margin-top: 25px;
+        .payment-summary-row {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            font-size: .88rem;
+            color: var(--gns-text-muted);
         }
 
-        .payment-btn {
-            padding: 10px 18px;
-            border-radius: 6px;
-            width: 48%;
-            border: none;
-            cursor: pointer;
-            font-size: 15px;
-        }
-
-        .payment-btn-cancel {
-            background: #f1f1f1;
-        }
-
-        .payment-btn-confirm {
-            background: #4CAF50;
-            color: white;
-        }
-
-            .payment-btn-confirm:disabled {
-                opacity: 0.5;
+            .payment-summary-row.total {
+                font-weight: 800;
+                font-size: 1rem;
+                color: var(--gns-text);
+                border-top: 1px solid var(--gns-border);
+                margin-top: 6px;
+                padding-top: 10px;
             }
 
-        /* Error Message */
+                .payment-summary-row.total strong {
+                    color: var(--gns-accent);
+                    font-family: 'Syne', sans-serif;
+                }
+
         .payment-error {
             display: none;
             margin-top: 10px;
-            color: red;
-            font-size: 14px;
+            color: #ef4444;
+            font-size: .8rem;
+            font-weight: 500;
         }
 
-    </style>
+        .payment-modal-actions {
+            margin-top: 22px;
+            display: flex;
+            gap: 10px;
+        }
 
+            .payment-modal-actions .btn-gns {
+                flex: 1;
+                justify-content: center;
+                padding: 10px;
+            }
+
+        .payment-btn-confirm:disabled {
+            opacity: .45;
+            pointer-events: none;
+        }
+
+
+        #divInProgressModal .modal-header,
+        #divInProgressModalHome .modal-header {
+            background: var(--gns-surface-2) !important;
+        }
+
+        #divInProgressModal .modal-body h4,
+        #divInProgressModalHome .modal-body h4 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            color: var(--gns-text);
+        }
+
+        #divInProgressModal .modal-body h6,
+        #divInProgressModalHome .modal-body h6 {
+            color: var(--gns-text-muted);
+            font-size: .82rem;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+
+        .gns-loader {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,.82);
+            backdrop-filter: blur(4px);
+            border-radius: var(--gns-radius);
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+            .gns-loader.show {
+                display: flex;
+            }
+
+        .gns-spinner {
+            position: relative;
+            width: 42px;
+            height: 42px;
+        }
+
+            .gns-spinner span {
+                position: absolute;
+                inset: 0;
+                border-radius: 50%;
+                border: 2.5px solid transparent;
+                animation: gns-ring-spin linear infinite;
+            }
+
+                .gns-spinner span:nth-child(1) {
+                    border-top-color: var(--gns-accent);
+                    animation-duration: .75s;
+                }
+
+                .gns-spinner span:nth-child(2) {
+                    inset: 7px;
+                    border-top-color: #fbb740;
+                    animation-duration: .55s;
+                    animation-direction: reverse;
+                }
+
+                .gns-spinner span:nth-child(3) {
+                    inset: 14px;
+                    border-top-color: var(--gns-accent-glow);
+                    animation-duration: .4s;
+                }
+        @@keyframes gns-ring-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .gns-loader-label {
+            font-size: .7rem;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--gns-text-muted);
+        }
+
+
+        @@media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #bill-content, #bill-content * {
+                visibility: visible;
+            }
+
+            #bill-content {
+                position: fixed;
+                inset: 0;
+                display: flex;
+                justify-content: center;
+            }
+        }
+    </style>
 }
 
-<div class="container">
+<div class="container-fluid px-3 px-md-0">
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <div class="gns-revenue-bar">
+        <div class="gns-revenue-bar__left">
+            <div class="gns-revenue-bar__icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <div class="gns-revenue-bar__label" id="revenueDateRange">Today's Revenue</div>
+                <h2 class="gns-revenue-bar__title">Revenue Summary</h2>
+            </div>
+        </div>
+        <div class="gns-revenue-bar__right">
+            <div class="gns-revenue-bar__amount" id="totalRevenue">₹0.00</div>
+            <div class="gns-revenue-bar__count" id="orderCount">0 Orders</div>
+        </div>
     </div>
 
-    <!--- Live Orders ---------->
+
     <div class="dashboard-section">
         <div class="section-title">
-            <span>📊</span> Online Delivery
+            <span>📦</span> Online Delivery
         </div>
         <div class="orders-grid" id="ordersContainer">
-            <!-- Orders will be loaded here dynamically -->
+            <!-- Orders loaded dynamically -->
         </div>
     </div>
-    <!-- Table Management Section -->
+
+    <!-- ── Table Service ─────────────────────────────────── -->
     <div class="dashboard-section">
         <div class="section-title">
             <span>🍽️</span> Table Service
         </div>
-        <div id="divTable">
-        </div>
+        <div id="divTable"></div>
     </div>
 
+    <!-- ── Order History ─────────────────────────────────── -->
+    <div class="gns-card">
+        <div class="gns-card__header">
+            <h3 class="gns-card__title"><i class="fas fa-history me-2" style="color:var(--gns-accent)"></i>Order History</h3>
+        </div>
+        <div class="gns-card__body" style="padding-bottom:8px">
 
-    <!-- Enhanced Modal -->
-    <div class="modal fade" id="divInProgressModal" tabindex="-1" role="dialog" aria-labelledby="orderModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    @* <h5 class="modal-title font-weight-bold" id="orderModalLabel">
-                        <span class="modal-title"></span>
-                    </h5> *@
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <h4 class="text-center font-weight-bold mb-3">Grill N Shakes</h4>
-                    <h6 class="text-center font-weight-bold mb-3">Order Receipt</h6>
-                    <div class="table-responsive">
-                        <div id="orderDetails"></div>
-                    </div>
-                </div>
-                <div class="modal-footer d-flex flex-column flex-md-row justify-content-end gap-2">
-                    <button type="button" class="btn btn-success mb-2 mb-md-0" id="confirmOrderBtn">
-                        <i class="fas fa-check"></i> Accept Order
-                    </button>
-                    <button type="button" class="btn btn-dark" data-dismiss="modal">
-                        <i class="fas fa-times"></i> Close
-                    </button>
-                </div>
+            <!-- Filter Row -->
+            <div class="gns-filter-row">
+                <label>From</label>
+                <input type="date" id="startDate" />
+                <span class="filter-sep">→</span>
+                <label>To</label>
+                <input type="date" id="endDate" />
+                <button id="btnFilter" class="btn-gns btn-gns-primary" style="margin-left:4px">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+                <button id="btnClear" class="btn-gns btn-gns-ghost">
+                    <i class="fas fa-times"></i> Clear
+                </button>
             </div>
-        </div>
-    </div>
 
-    <div class="modal fade" id="divInProgressModalHome"  role="dialog" aria-labelledby="orderModalLabelHome" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    @*  <h5 class="modal-title font-weight-bold" id="orderModalLabel"> 
-                        <span class="modal-title"></span>
-                    </h5> *@
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <h4 class="text-center font-weight-bold mb-3">Grill N Shakes</h4>
-                    <h6 class="text-center font-weight-bold mb-3">Order Receipt</h6>
-                    <div class="table-responsive">
-                        <div id="orderDetailsHome"></div>
-                    </div>
-                </div>
-                <div class="modal-footer d-flex flex-column flex-md-row justify-content-end gap-2">
-                    
-                    <button type="button" class="btn btn-dark" data-dismiss="modal">
-                        <i class="fas fa-times"></i> Close
-                    </button>
-                </div>
+            <div class="table-responsive" id="tableContainer">
+                <table id="orderHistoryTable" class="table table-bordered table-sm w-100">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer Name</th>
+                            <th>Customer Phone</th>
+                            <th>Table No</th>
+                            <th>Item Name</th>
+                            <th>Price</th>
+                            <th>Total Items</th>
+                            <th>Payment Mode</th>
+                            <th>Date</th>
+                            <th class="dt-control">View Bill</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <!--Payment Modal -->
-    <div id="paymentModal" class="payment-modal-overlay">
-        <div class="payment-modal">
-            <div class="payment-modal-header">
-                <h3>Select Payment Mode</h3>
-                <p>Choose how the customer paid for this order</p>
-            </div>
+</div>
 
-            <!-- PAYMENT OPTIONS -->
-            <div class="payment-options">
-                <div class="payment-option" data-mode="cash">
-                    <div class="payment-icon">💵</div>
-                    <h4>Cash</h4>
-                    <p>Paid in cash</p>
+<div class="modal fade" id="divInProgressModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" style="font-family:'Syne',sans-serif;font-weight:800">
+                        <i class="fas fa-receipt me-2" style="color:var(--gns-accent)"></i>Order Receipt
+                    </h5>
+                    <div style="font-size:.75rem;color:var(--gns-text-muted);margin-top:2px">Grill N Shakes</div>
                 </div>
-
-                <div class="payment-option" data-mode="online">
-                    <div class="payment-icon">💳</div>
-                    <h4>Online</h4>
-                    <p>Digital payment</p>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                        style="background:none;border:1px solid var(--gns-border);border-radius:var(--gns-radius-sm);color:var(--gns-text-muted);width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;transition:.2s">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="padding:22px">
+                <div class="table-responsive">
+                    <div id="orderDetails"></div>
                 </div>
             </div>
+            <div class="modal-footer" style="gap:10px">
+                <button type="button" class="btn-gns btn-gns-primary" id="confirmOrderBtn">
+                    <i class="fas fa-check"></i> Accept Order
+                </button>
+                <button type="button" class="btn-gns btn-gns-ghost" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-            <!-- DISCOUNT SECTION -->
-            <div style="margin: 20px 0; text-align: left;">
+<div class="modal fade" id="divInProgressModalHome" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" style="font-family:'Syne',sans-serif;font-weight:800">
+                        <i class="fas fa-receipt me-2" style="color:var(--gns-accent)"></i>Order Receipt
+                    </h5>
+                    <div style="font-size:.75rem;color:var(--gns-text-muted);margin-top:2px">Grill N Shakes</div>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                        style="background:none;border:1px solid var(--gns-border);border-radius:var(--gns-radius-sm);color:var(--gns-text-muted);width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;transition:.2s">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="padding:22px">
+                <div class="table-responsive">
+                    <div id="orderDetailsHome"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-gns btn-gns-ghost" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
+
+<div id="paymentModal" class="payment-modal-overlay">
+    <div class="payment-modal">
+
+        <div class="payment-modal-header">
+            <h3>Select Payment Mode</h3>
+            <p>Choose how the customer paid for this order</p>
+        </div>
+
+        <div class="payment-options">
+            <div class="payment-option" data-mode="cash">
+                <div class="payment-icon">💵</div>
+                <h4>Cash</h4>
+                <p>Paid in cash</p>
+            </div>
+            <div class="payment-option" data-mode="online">
+                <div class="payment-icon">💳</div>
+                <h4>Online</h4>
+                <p>Digital payment</p>
+            </div>
+        </div>
+
+        <!-- Discount -->
+        <div>
+            <span class="gns-discount-label">Quick Discount</span>
+            <div class="discount-strip">
                 <button class="discount-option" id="disciount5">5%</button>
                 <button class="discount-option" id="disciount10">10%</button>
                 <button class="discount-option" id="disciount15">15%</button>
-                <label for="discountInput" style="font-weight:600; font-size:14px; display:block; margin-bottom:5px;">
-                    Discount (₹):
-                </label>
-                <input type="number"
-                       id="discountInput"
-                       placeholder="Enter discount amount"
-                       inputmode="numeric"
-                       min="0">
-                <div id="paymentSummary" style="margin-top:14px; font-size:15px; border-top:1px dashed #e0e0e0; padding-top:12px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                        <span>Subtotal</span>
-                        <strong id="paymentSubtotal">₹0.00</strong>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                        <span>Discount</span>
-                        <strong id="paymentDiscount">₹0.00</strong>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-weight:900; font-size:16px;">
-                        <span>Final Amount</span>
-                        <strong id="paymentFinal">₹0.00</strong>
-                    </div>
+            </div>
+            <span class="gns-discount-label">Custom Discount (₹)</span>
+            <input type="number"
+                   id="discountInput"
+                   placeholder="Enter discount amount"
+                   inputmode="numeric"
+                   min="0" />
+
+            <!-- Summary -->
+            <div class="payment-summary">
+                <div class="payment-summary-row">
+                    <span>Subtotal</span>
+                    <strong id="paymentSubtotal">₹0.00</strong>
+                </div>
+                <div class="payment-summary-row">
+                    <span>Discount</span>
+                    <strong id="paymentDiscount" style="color:#ef4444">₹0.00</strong>
+                </div>
+                <div class="payment-summary-row total">
+                    <span>Final Amount</span>
+                    <strong id="paymentFinal">₹0.00</strong>
                 </div>
             </div>
+        </div>
 
-            <!-- ERROR MESSAGE -->
-            <div class="payment-error" id="paymentError">
-                Please select a payment mode
-            </div>
+        <div class="payment-error" id="paymentError">
+            <i class="fas fa-exclamation-circle me-1"></i> Please select a payment mode
+        </div>
 
-            <!-- ACTION BUTTONS -->
-            <div class="payment-modal-actions">
-                <button class="payment-btn payment-btn-cancel" id="cancelPayment">Cancel</button>
-                <button class="payment-btn payment-btn-confirm" id="confirmPayment" disabled>
-                    Complete Order
-                </button>
-            </div>
+        <div class="payment-modal-actions">
+            <button class="btn-gns btn-gns-ghost" id="cancelPayment">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+            <button class="btn-gns btn-gns-primary payment-btn-confirm" id="confirmPayment" disabled>
+                <i class="fas fa-check"></i> Complete Order
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<div id="bill-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <i class="fas fa-file-invoice me-2" style="color:var(--gns-accent)"></i>Order Bill
+            </h2>
+            <button class="close-btn" onclick="closeBillModal()">&times;</button>
+        </div>
+
+        <div id="bill-content">
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-gns btn-gns-ghost" onclick="closeBillModal()">
+                <i class="fas fa-times"></i> Close
+            </button>
+            <button class="btn-gns btn-gns-ghost" onclick="downloadBill()">
+                <i class="fas fa-download"></i> Save PDF
+            </button>
+            <button class="btn-gns btn-gns-primary" onclick="printBill()">
+                <i class="fas fa-print"></i> Print Bill
+            </button>
         </div>
     </div>
-
-
-
-    <!-- Revenue Display Section -->
-    <div class="alert alert-info">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h5 class="mb-1"><i class="fas fa-chart-line"></i> Revenue Summary</h5>
-                <p class="mb-0" id="revenueDateRange">Today's Revenue</p>
-            </div>
-            <div class="text-right">
-                <h3 class="mb-0" id="totalRevenue">₹0.00</h3>
-                <small id="orderCount">0 Orders</small>
-            </div>
-        </div>
-    </div>
-
-    <!-- Order History Section with Infinite Scroll -->
-
-    <div class="row g-2 align-items-center mb-3">
-        <div class="col-12 col-sm-6 col-md-3">
-            <input type="date" id="startDate" class="form-control" />
-        </div>
-
-        <div class="col-12 col-sm-6 col-md-3">
-            <input type="date" id="endDate" class="form-control" />
-        </div>
-
-        <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
-            <button id="btnFilter" class="btn btn-primary w-100">Filter</button>
-        </div>
-
-        <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
-            <button id="btnClear" class="btn btn-secondary w-100">Clear</button>
-        </div>
-    </div>
-
-    <div class="table-responsive table-container" id="tableContainer">
-        <table id="orderHistoryTable" class="table table-bordered table-striped table-sm" style="width:100%">
-            <thead class="thead-light">
-                <tr>
-                    <th>ID</th>
-                    <th>Customer Name</th>
-                    <th>Customer Phone</th>
-                    <th>Table No</th>
-                    <th>Item Name</th>
-                    <th>Price</th>
-                    <th>Total Items</th>
-                    <th>Payment Mode</th>
-                    <th>Date</th>
-                    <th class="dt-control">View Bill</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- History rows will appear here -->
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Bill Modal -->
-
-    <div id="bill-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Order Bill</h2>
-                <button class="close-btn" onclick="closeBillModal()">&times;</button>
-            </div>
-            <div id="bill-content">
-                <!-- Bill content will be generated here -->
-            </div>
-            <div style="text-align: center;  display: flex; justify-content: center;">
-                <button class="btn-print" onclick="printBill()">
-                    🖨️ Print Physical Bill
-                </button>
-                <button class="btn-view" onclick="downloadBill()">
-                    💾 Save as PDF
-                </button>
-            </div>
-        </div>
-    </div>
-
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
