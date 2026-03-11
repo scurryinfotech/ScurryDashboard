@@ -17,7 +17,7 @@ $(function () {
             renderTransactions(res.data.payments || []);
         });
 
-
+        debugger
         $.getJSON(`/Salary/GetBalance?staffId=${STAFF_ID}`, res => {
             if (!res.success) return;
             const s = res.data;
