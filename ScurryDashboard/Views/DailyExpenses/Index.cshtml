@@ -44,6 +44,7 @@
                         <th>Category</th>
                         <th>Amount</th>
                         <th>Date</th>
+                        <th>Payment Mode</th>
                         <th>Paid By</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -81,6 +82,15 @@
                     <div class="gns-form-group">
                         <label>Date *</label>
                         <input type="date" id="deDate" class="gns-form-control" />
+                    </div>
+                    <div class="gns-form-group">
+                        <label>Payment Mode</label>
+                        <select id="dePaymentMode" class="gns-form-control">
+                            <option value="Cash">💵 Cash</option>
+                            <option value="Online">📱 Online</option>
+                            <option value="Cheque">📝 Cheque</option>
+                            <option value="Bank Transfer">🏦 Bank Transfer</option>
+                        </select>
                     </div>
                     <div class="gns-form-group">
                         <label>Paid By</label>

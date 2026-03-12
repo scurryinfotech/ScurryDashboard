@@ -1,11 +1,16 @@
-﻿/* ═══════════════════════════════════════════════════════════════
-   dailyExpenses.js  —  calls MVC /DailyExpenses/* controller
-   ═══════════════════════════════════════════════════════════════ */
+﻿/* dailyExpenses.js — with PaymentMode */
 $(function () {
     const CTRL = '/DailyExpenses';
     let dt;
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 6);
+
+    const modeIcon = {
+        'Cash': '<i class="fas fa-money-bill-wave" style="color:#22c55e"></i>',
+        'Online': '<i class="fas fa-mobile-alt"      style="color:#818cf8"></i>',
+        'Cheque': '<i class="fas fa-money-check"     style="color:#f59e0b"></i>',
+        'Bank Transfer': '<i class="fas fa-university"      style="color:#22d3ee"></i>'
+    };
 
     function initTable(data) {
         if (dt) dt.destroy();
@@ -20,6 +25,13 @@ $(function () {
                     render: v => `<span style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-accent)">Rs ${Number(v).toLocaleString()}</span>`
                 },
                 { data: 'expenseDate', render: v => v ? v.substring(0, 10) : '—' },
+                {
+                    data: 'paymentMode',
+                    defaultContent: 'Cash',
+                    render: v => `<span style="display:flex;align-items:center;gap:5px">
+                        ${modeIcon[v] || ''} ${v || 'Cash'}
+                    </span>`
+                },
                 { data: 'paidBy', defaultContent: '—' },
                 {
                     data: 'isActive',
@@ -30,9 +42,10 @@ $(function () {
                 {
                     data: 'dailyExpenseId', orderable: false,
                     render: id => `<div class="tbl-actions">
-                    <button class="tbl-btn tbl-btn-edit"   onclick="deEdit(${id})"   title="Edit"><i class="fas fa-pen"></i></button>
-                    <button class="tbl-btn tbl-btn-delete" onclick="deDelete(${id})" title="Delete"><i class="fas fa-trash"></i></button>
-                  </div>` }
+                        <button class="tbl-btn tbl-btn-edit"   onclick="deEdit(${id})"   title="Edit"><i class="fas fa-pen"></i></button>
+                        <button class="tbl-btn tbl-btn-delete" onclick="deDelete(${id})" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>`
+                }
             ]
         });
 
@@ -59,9 +72,11 @@ $(function () {
     }
 
     $('#btnAddDE').on('click', () => {
-        $('#deId').val(''); $('#deModalTitle').text('Add Daily Expense');
+        $('#deId').val('');
+        $('#deModalTitle').text('Add Daily Expense');
         $('#deTitle,#deCategory,#deAmount,#dePaidBy,#deNotes').val('');
         $('#deDate').val(new Date().toISOString().substring(0, 10));
+        $('#dePaymentMode').val('Cash');
         $('#deIsActive').val('true');
         $('#deModal').modal('show');
     });
@@ -70,11 +85,15 @@ $(function () {
         $.ajax({
             url: `${CTRL}/GetById`, method: 'GET', data: { id },
             success: s => {
-                $('#deId').val(s.dailyExpenseId); $('#deModalTitle').text('Edit Daily Expense');
-                $('#deTitle').val(s.title); $('#deCategory').val(s.category || '');
+                $('#deId').val(s.dailyExpenseId);
+                $('#deModalTitle').text('Edit Daily Expense');
+                $('#deTitle').val(s.title);
+                $('#deCategory').val(s.category || '');
                 $('#deAmount').val(s.amount);
                 $('#deDate').val(s.expenseDate ? s.expenseDate.substring(0, 10) : '');
-                $('#dePaidBy').val(s.paidBy || ''); $('#deNotes').val(s.notes || '');
+                $('#dePaymentMode').val(s.paymentMode || 'Cash');
+                $('#dePaidBy').val(s.paidBy || '');
+                $('#deNotes').val(s.notes || '');
                 $('#deIsActive').val(s.isActive ? 'true' : 'false');
                 $('#deModal').modal('show');
             },
@@ -90,11 +109,15 @@ $(function () {
 
         const payload = {
             dailyExpenseId: parseInt($('#deId').val()) || 0,
-            title: t, category: $('#deCategory').val() || null,
-            amount: parseFloat(a), expenseDate: d,
+            title: t,
+            category: $('#deCategory').val() || null,
+            amount: parseFloat(a),
+            expenseDate: d,
+            paymentMode: $('#dePaymentMode').val() || 'Cash',
             paidBy: $('#dePaidBy').val() || null,
             notes: $('#deNotes').val() || null,
-            isActive: $('#deIsActive').val() === 'true', modifiedBy: 'Admin'
+            isActive: $('#deIsActive').val() === 'true',
+            modifiedBy: 'Admin'
         };
         const id = $('#deId').val();
         $(this).prop('disabled', true);

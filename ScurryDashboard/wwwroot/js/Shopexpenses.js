@@ -1,12 +1,19 @@
-﻿/* ═══════════════════════════════════════════════════════════════
-   shopExpenses.js  —  calls MVC /ShopExpenses/* controller
-   ═══════════════════════════════════════════════════════════════ */
+﻿
 $(function () {
     const CTRL = '/ShopExpenses';
     let dt;
     const now = new Date();
 
+    const PAYMENT_MODES = ['Cash', 'Online', 'Cheque', 'Bank Transfer'];
+    const modeIcon = {
+        'Cash': '<i class="fas fa-money-bill-wave" style="color:#22c55e"></i>',
+        'Online': '<i class="fas fa-mobile-alt"      style="color:#818cf8"></i>',
+        'Cheque': '<i class="fas fa-money-check"     style="color:#f59e0b"></i>',
+        'Bank Transfer': '<i class="fas fa-university"      style="color:#22d3ee"></i>'
+    };
+
     function initTable(data) {
+        debugger
         if (dt) dt.destroy();
         dt = $('#shopExpTable').DataTable({
             data, destroy: true, pageLength: 10, order: [[0, 'desc']],
@@ -20,6 +27,13 @@ $(function () {
                 },
                 { data: 'expenseDate', render: v => v ? v.substring(0, 10) : '—' },
                 {
+                    data: 'paymentMode',
+                    defaultContent: 'Cash',
+                    render: v => `<span style="display:flex;align-items:center;gap:5px">
+                        ${modeIcon[v] || ''} ${v || 'Cash'}
+                    </span>`
+                },
+                {
                     data: 'isActive',
                     render: v => v
                         ? '<span class="gns-badge gns-badge-active">Active</span>'
@@ -28,9 +42,10 @@ $(function () {
                 {
                     data: 'expenseId', orderable: false,
                     render: id => `<div class="tbl-actions">
-                    <button class="tbl-btn tbl-btn-edit"   onclick="seEdit(${id})"   title="Edit"><i class="fas fa-pen"></i></button>
-                    <button class="tbl-btn tbl-btn-delete" onclick="seDelete(${id})" title="Delete"><i class="fas fa-trash"></i></button>
-                  </div>` }
+                        <button class="tbl-btn tbl-btn-edit"   onclick="seEdit(${id})"   title="Edit"><i class="fas fa-pen"></i></button>
+                        <button class="tbl-btn tbl-btn-delete" onclick="seDelete(${id})" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>`
+                }
             ]
         });
 
@@ -54,9 +69,12 @@ $(function () {
     }
 
     $('#btnAddShopExp').on('click', () => {
-        $('#seId').val(''); $('#seModalTitle').text('Add Shop Expense');
+        $('#seId').val('');
+        $('#seModalTitle').text('Add Shop Expense');
         $('#seTitle,#seCategory,#seAmount,#seDesc').val('');
-        $('#seDate').val(''); $('#seIsActive').val('true');
+        $('#seDate').val('');
+        $('#sePaymentMode').val('Cash');
+        $('#seIsActive').val('true');
         $('#shopExpModal').modal('show');
     });
 
@@ -64,10 +82,13 @@ $(function () {
         $.ajax({
             url: `${CTRL}/GetById`, method: 'GET', data: { id },
             success: s => {
-                $('#seId').val(s.expenseId); $('#seModalTitle').text('Edit Expense');
-                $('#seTitle').val(s.title); $('#seCategory').val(s.category || '');
+                $('#seId').val(s.expenseId);
+                $('#seModalTitle').text('Edit Expense');
+                $('#seTitle').val(s.title);
+                $('#seCategory').val(s.category || '');
                 $('#seAmount').val(s.amount);
                 $('#seDate').val(s.expenseDate ? s.expenseDate.substring(0, 10) : '');
+                $('#sePaymentMode').val(s.paymentMode || 'Cash');
                 $('#seDesc').val(s.description || '');
                 $('#seIsActive').val(s.isActive ? 'true' : 'false');
                 $('#shopExpModal').modal('show');
@@ -81,13 +102,17 @@ $(function () {
         if (!t) { gnsToast('Title required.', 'error'); return; }
         if (!a) { gnsToast('Amount required.', 'error'); return; }
         if (!d) { gnsToast('Date required.', 'error'); return; }
-
+        debugger
         const payload = {
             expenseId: parseInt($('#seId').val()) || 0,
-            title: t, category: $('#seCategory').val() || null,
-            amount: parseFloat(a), expenseDate: d,
+            title: t,
+            category: $('#seCategory').val() || null,
+            amount: parseFloat(a),
+            expenseDate: d,
+            paymentMode: $('#dePaymentMode').val() || 'Cash',
             description: $('#seDesc').val() || null,
-            isActive: $('#seIsActive').val() === 'true', modifiedBy: 'Admin'
+            isActive: $('#seIsActive').val() === 'true',
+            modifiedBy: 'Admin'
         };
         const id = $('#seId').val();
         $(this).prop('disabled', true);
