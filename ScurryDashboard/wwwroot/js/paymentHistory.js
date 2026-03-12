@@ -27,9 +27,19 @@ $(function () {
             $('#phName').text(s.fullName);
             $('#phDept').text(s.department || '—');
             $('#phBasic').text(pkr(s.basicSalary));
-            $('#phOut').text(pkr(s.totalOutstanding));
+            $('#phOut').text(pkr(Math.abs(s.totalOutstanding)));
+
+            if (s.totalOutstanding < 0) {
+                $('#phOut').css('color', '#22c55e');
+            }
+            else if (s.totalOutstanding > 0) {
+                $('#phOut').css('color', '#ef4444'); 
+            }
+            else {
+                $('#phOut').css('color', '#3b82f6'); 
+            }
             document.title = s.fullName + ' — Payment History';
-        });
+        }); 
     }
 
     function renderPayrollCards(payrolls) {
@@ -114,9 +124,27 @@ $(function () {
                 },
 
                 {
-                    data: 'amount',
-                    render: v => `<span style="font-family:Syne,sans-serif;font-weight:800;
-                                       color:var(--gns-accent)">${pkr(v)}</span>`
+                    
+                    data: null,
+                    render: r => {
+
+                        let color = "var(--gns-accent)";
+
+                        if (r.paymentType === "Advance") {
+                            color = "#22c55e"; 
+                        }
+                        else if (r.paymentType === "Partial") {
+                            color = "#f59e0b"; 
+                        }
+                        else if (r.paymentType === "Full") {
+                            color = "#3b82f6"; 
+                        }
+
+                        return `<span style="font-family:Syne,sans-serif;font-weight:800;color:${color}">
+                    ${pkr(r.amount)}
+                </span>`;
+                    }
+                
                 },
 
                 { data: 'paymentMethod', defaultContent: '—' },
