@@ -10,6 +10,9 @@ namespace ScurryDashboard.Models
         [JsonPropertyName("orderStatus")]
         public int OrderStatus { get; set; }
 
+        public int? DeliveryStaffId { get; set; }
+
+
 
     }
 }

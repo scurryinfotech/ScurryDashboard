@@ -1,0 +1,209 @@
+﻿@{
+    ViewData["Title"] = "New Order";
+    Layout = "~/Views/Shared/_NewOrderLayout.cshtml";
+}
+
+<div id="noWrap">
+
+    <div class="no-top">
+        <a class="no-top-logo" href="/">
+            <i class="fas fa-fire-flame-curved"></i>
+            <span>GrillNShakes</span>
+        </a>
+
+        <button class="no-top-neword" onclick="clearCart()">
+            <i class="fas fa-plus"></i> New Order
+        </button>
+
+        <div class="no-top-search">
+            <div class="no-srch-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="noSearch" placeholder="Search item..." oninput="filterMenu()" />
+            </div>
+            <input class="no-sc-inp" type="text" id="noSC" placeholder="Short Code" oninput="filterMenu()" />
+        </div>
+
+        <div class="no-top-types">
+            <div class="no-type-tab active" data-ot="DineIn"   onclick="setType(this)">Dine In</div>
+            <div class="no-type-tab"        data-ot="Delivery" onclick="setType(this)">Delivery</div>
+            <div class="no-type-tab"        data-ot="PickUp"   onclick="setType(this)">Pick Up</div>
+            <div class="no-type-tab"        data-ot="Table"    onclick="setType(this)">Table</div>
+        </div>
+
+        <div class="no-tbl-wrap" id="noTblWrap">
+            <label>Table:</label>
+            <select id="noTableSel"></select>
+        </div>
+
+        <a class="no-top-back" href="/">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <div class="no-cust-bar">
+        <span class="no-cust-bar-lbl">Customer:</span>
+        <input class="no-cust-inp name"  type="text" id="noCustName"  placeholder="Name " />
+        <input class="no-cust-inp phone" type="tel"  id="noCustPhone" placeholder="Phone " />
+        <input class="no-cust-inp addr"  type="text" id="noCustAddr"  placeholder="Delivery Address" />
+    </div>
+
+    <div class="no-body">
+
+        <div class="no-cats" id="noCatBar"></div>
+
+        <div class="no-center">
+
+            <div class="no-subbar" id="noSubBar" style="display:none"></div>
+
+            <div class="no-grid" id="noGrid"></div>
+
+            <div class="no-detail" id="noDetailPanel">
+                <div class="no-detail-top">
+                    <div>
+                        <div class="no-detail-name" id="noDetailName">Item</div>
+                        <div class="no-detail-code" id="noDetailCode"></div>
+                    </div>
+                    <button class="no-detail-x" onclick="closeDetail()">&times;</button>
+                </div>
+                <div class="no-portions">
+                    <div class="no-portion active" id="noPortionFull" onclick="selPortion('full')">
+                        <div class="no-portion-lbl">Full</div>
+                        <div class="no-portion-pr" id="noDetailFP">&#8377;0</div>
+                    </div>
+                    <div class="no-portion" id="noPortionHalf" onclick="selPortion('half')">
+                        <div class="no-portion-lbl">Half</div>
+                        <div class="no-portion-pr" id="noDetailHP">N/A</div>
+                    </div>
+                </div>
+                <div class="no-detail-row">
+                    <button class="no-dqb minus" onclick="detailChgQty(-1)">&#8722;</button>
+                    <span   class="no-dqv" id="noDetailQty">1</span>
+                    <button class="no-dqb plus"  onclick="detailChgQty(1)">+</button>
+                    <input  class="no-detail-note" type="text" id="noDetailNote" placeholder="Special instruction (optional)" />
+                    <button class="no-detail-add" onclick="detailAdd()">
+                        <i class="fas fa-cart-plus"></i> Add to Order
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="no-right">
+
+            <div class="no-cart-hdr">
+                <div class="no-cart-hdr-labels">
+                    <span class="no-hdr-item">ITEMS</span>
+                    <span class="no-hdr-qty">QTY.</span>
+                    <span class="no-hdr-price">PRICE</span>
+                </div>
+            </div>
+
+            <div class="no-clist" id="noCartList">
+                <div class="no-empty">
+                    <i class="fas fa-cart-shopping"></i>
+                    <p>No items selected</p>
+                </div>
+            </div>
+
+            <div class="no-bill">
+                <div class="no-bill-row">
+                    <span class="no-bill-lbl">Sub Total</span>
+                    <span class="no-bill-val" id="noBSub">0</span>
+                </div>
+                <div class="no-bill-row">
+                    <span class="no-bill-lbl">Discount</span>
+                    <div class="no-disc-wrap">
+                        <button class="no-dpct" data-pct="5"  onclick="discPct(5)">5%</button>
+                        <button class="no-dpct" data-pct="10" onclick="discPct(10)">10%</button>
+                        <button class="no-dpct" data-pct="15" onclick="discPct(15)">15%</button>
+                        <input  class="no-dinp" type="number" id="noDiscAmt" placeholder="&#8377;" min="0" oninput="discFixed(this.value)" />
+                    </div>
+                    <span class="no-bill-val" id="noBDisc">(0.00)</span>
+                </div>
+                <div class="no-bill-row">
+                    <span class="no-bill-lbl">Tax (5%)</span>
+                    <span class="no-bill-val" id="noBTax">0.00</span>
+                </div>
+                <div class="no-bill-row">
+                    <span class="no-bill-lbl">Round Off</span>
+                    <span class="no-bill-val" id="noBRound">0</span>
+                </div>
+                <div class="no-bill-row">
+                    <span class="no-bill-lbl">Customer Paid</span>
+                    <input class="no-paid-inp" type="number" id="noPaid" placeholder="0" min="0" oninput="updateRet()" />
+                </div>
+                <div class="no-bill-row">
+                    <span class="no-bill-lbl">Return to Customer</span>
+                    <span class="no-bill-val" id="noBRet">0.00</span>
+                </div>
+                <div class="no-comp-row">
+                    <input type="checkbox" id="noComp" onchange="toggleComp()" />
+                    <label for="noComp">Complimentary</label>
+                </div>
+            </div>
+
+            <div class="no-total-row">
+                <span class="no-total-lbl">Total</span>
+                <span class="no-total-val">&#8377; <span id="noTotal">0</span></span>
+            </div>
+
+            <div class="no-pm-section">
+                <div class="no-pm-lbl">Payment Mode</div>
+                <div class="no-pm-tabs">
+                    <div class="no-pm-tab active" data-mode="Cash"  onclick="selectPM(this)">&#128181; Cash</div>
+                    <div class="no-pm-tab"        data-mode="Card"  onclick="selectPM(this)">&#128179; Card</div>
+                    <div class="no-pm-tab"        data-mode="UPI"   onclick="selectPM(this)">&#128241; UPI</div>
+                    <div class="no-pm-tab"        data-mode="Due"   onclick="selectPM(this)">&#128203; Due</div>
+                    <div class="no-pm-tab"        data-mode="Other" onclick="selectPM(this)">Other</div>
+                </div>
+            </div>
+
+            <div class="no-actions">
+                <button class="no-abtn no-abtn-save"  id="noBtnSave"  onclick="noSave(false)" disabled><i class="fas fa-floppy-disk"></i>Save</button>
+                <button class="no-abtn no-abtn-print" id="noBtnPrint" onclick="noSave(true)"  disabled><i class="fas fa-print"></i>Save &amp; Print</button>
+                <button class="no-abtn no-abtn-save"  id="noBtnEB"    onclick="noSave(false)" disabled><i class="fas fa-envelope"></i>EBill</button>
+                <button class="no-abtn no-abtn-kot"   id="noBtnKOT"   onclick="noKOT(false)"  disabled><i class="fas fa-receipt"></i>KOT</button>
+                <button class="no-abtn no-abtn-kotp"  id="noBtnKOTP"  onclick="noKOT(true)"   disabled><i class="fas fa-print"></i>KOT &amp; Print</button>
+                <button class="no-abtn no-abtn-hold"  id="noBtnHold"  onclick="noHold()"      disabled><i class="fas fa-pause"></i>Hold</button>
+            </div>
+
+            <div class="no-actions-place">
+                <button class="no-abtn-place" id="noBtnPlace" onclick="noPlace()" disabled>
+                    <i class="fas fa-check-circle"></i> Place Order
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="no-modal-bg" id="noKOTModal">
+    <div class="no-modal-box">
+        <div class="no-modal-hdr">
+            <h4><i class="fas fa-receipt" style="color:#e67e22;margin-right:6px"></i>Kitchen Order Ticket</h4>
+            <button class="no-modal-x" onclick="document.getElementById('noKOTModal').classList.remove('open')">&times;</button>
+        </div>
+        <div class="no-modal-body"><div class="no-pzone" id="noKOTPrint"></div></div>
+        <div class="no-modal-ftr">
+            <button class="no-btn no-btn-gh"  onclick="document.getElementById('noKOTModal').classList.remove('open')">Close</button>
+            <button class="no-btn no-btn-red" onclick="printZone('noKOTPrint')"><i class="fas fa-print"></i> Print KOT</button>
+        </div>
+    </div>
+</div>
+
+<div class="no-modal-bg" id="noBillModal">
+    <div class="no-modal-box" style="max-width:440px">
+        <div class="no-modal-hdr">
+            <h4><i class="fas fa-file-invoice" style="color:#27ae60;margin-right:6px"></i>Order Bill</h4>
+            <button class="no-modal-x" onclick="document.getElementById('noBillModal').classList.remove('open')">&times;</button>
+        </div>
+        <div class="no-modal-body"><div class="no-pzone" id="noBillPrint"></div></div>
+        <div class="no-modal-ftr">
+            <button class="no-btn no-btn-gh"  onclick="document.getElementById('noBillModal').classList.remove('open')">Close</button>
+            <button class="no-btn no-btn-gh"  onclick="printZone('noBillPrint')"><i class="fas fa-print"></i> Print</button>
+            <button class="no-btn no-btn-grn" onclick="doneBill('noBillModal')"><i class="fas fa-check"></i> Done</button>
+        </div>
+    </div>
+</div>
+
+<div id="noToast"></div>
