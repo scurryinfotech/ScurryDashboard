@@ -32,6 +32,7 @@ let isLoading = false;
 let hasMoreData = true;
 let allOrdersData = [];
 let filteredOrdersData = [];
+let selectedDeliveryOrderId = null;
 
 // ========== Utilities ==========
 
@@ -53,8 +54,9 @@ $(document).ready(function () {
         loadOrderHistory(true);
         //setupInfiniteScroll();
         getOrdersFromCoffee();
-    }, 10000);
-    
+        
+    }, 3000);
+
 
 
     //initializeConnectionUI();
@@ -257,7 +259,7 @@ function checkAndStopBeepIfNoProblems() {
     }
 }
 
-$(document).on("click keydown touchstart pointerdown", ensureAudioUnlocked); 
+$(document).on("click keydown touchstart pointerdown", ensureAudioUnlocked);
 
 $(document).on("click", "#stopBeepBtn", function () {
     stopAllBeeps();
@@ -1955,6 +1957,7 @@ function handleOnlinePaymentConfirm() {
             // Store payment mode locally (optional)
 
             order.paymentMode = mode;
+            
 
             closePaymentModal();
 
@@ -2078,9 +2081,9 @@ function openPaymentModal(orderId, orderData) {
     $("#divInProgressModal").modal("hide");
     $("#divInProgressModalHome").modal("hide");
     //setTimeout(() => {
-        $("#paymentModal").addClass("active");
-        const d = document.getElementById("discountInput");
-        if (d) d.focus();
+    $("#paymentModal").addClass("active");
+    const d = document.getElementById("discountInput");
+    if (d) d.focus();
     //}, 250);
 
 
@@ -2571,7 +2574,7 @@ function showSuccessMessage(message) {
 
     $('body').append(toast);
     //setTimeout(() => {
-        toast.alert('close');
+    toast.alert('close');
     //}, 3000);
 }
 
@@ -3053,7 +3056,7 @@ function createOrderCard(order) {
                         </button>
                     ` : ''}
                     ${order.status === 'Order In Progress' ? `
-                        <button class="btn btn-warning btn-action" onclick="updateOrderStatusOnPlatform('${order.orderId}', 'Out for delivery', 'Online')">
+                        <button class="btn btn-warning btn-action" onclick="selectDeliveryStaff('${order.orderId}')">
                             <i class="fas fa-utensils"></i> Ready To Deliver
                         </button>
                         <button class="btn btn-danger btn-action" onclick="rejectOrder('${order.orderId}')">
@@ -3117,7 +3120,52 @@ function filterOrders(platform) {
     renderOrders();
 }
 
-// UPDATE ORDER STATUS FUNCTION (SINGLE UNIFIED VERSION)
+
+function selectDeliveryStaff(orderId) {
+    selectedDeliveryOrderId = orderId;
+
+    $.ajax({
+        url: '/Staff/GetAll',
+        method: 'GET',
+        success: function (data) {
+            debugger
+            data = data.filter(x => x.avalFDelivery === true);
+            let dropdown = $('#staffDropdown');
+            dropdown.empty();
+
+            dropdown.append(`<option value="">Select Staff</option>`);
+
+            data.forEach(s => {
+                dropdown.append(`<option value="${s.staffId}">${s.fullName}</option>`);
+            });
+
+            $('#staffModal').show();
+        },
+        error: function () {
+            alert("Failed to load staff");
+        }
+    });
+}
+function confirmDelivery() {
+    const staffId = $('#staffDropdown').val();
+
+    if (!staffId) {
+        alert("Select staff");
+        return;
+    }
+
+    updateRestaurantOrderStatus(
+        selectedDeliveryOrderId,
+        'Out for delivery',
+        staffId   
+    );
+
+    closeStaffModal();
+}
+
+function closeStaffModal() {
+    $('#staffModal').hide();
+}
 function updateOrderStatus(orderId, newStatus) {
 
 
@@ -3379,8 +3427,7 @@ function updateSwiggyOrderStatus(orderId, status) {
 }
 
 // UPDATE RESTAURANT ORDER STATUS
-function updateRestaurantOrderStatus(orderId, status) {
-
+function updateRestaurantOrderStatus(orderId, status, staffId = null) {
 
     const statusMap = {
         'Order In Progress': 2,
@@ -3389,43 +3436,33 @@ function updateRestaurantOrderStatus(orderId, status) {
         'Removed': 5
     };
 
-    // compute numericStatus first
-    const numericStatus = statusMap[status] ?? null;
-
-
     const payload = {
         orderId: String(orderId),
-        orderStatus: numericStatus,
-        //paymentMode: mode  
+        orderStatus: statusMap[status],
+        deliveryStaffId: staffId
     };
-
-
 
     $.ajax({
         url: '/Home/UpdateOnlineStatus',
         type: 'PUT',
-        contentType: 'application/json; charset=utf-8',
+        contentType: 'application/json',
         data: JSON.stringify(payload),
-        success: function (data) {
+        success: function () {
+
             const idx = ordersData.findIndex(o => String(o.orderId) === String(orderId));
             if (idx !== -1) {
-
                 ordersData[idx].status = status;
             }
-            if (status === "Order In Progress") {
-                printThermalBill(ordersData[idx]);
-            }
-            renderOrders();
+         
 
+            renderOrders();
             showNotification('Order updated', 'success');
         },
-        error: function (xhr, statusText, error) {
-
-            showNotification(`Failed to update order #${orderId}`, 'error');
+        error: function () {
+            showNotification('Failed to update order', 'error');
         }
     });
 }
-
 
 function RejectCoffeeOrder(orderId) {
     if (!confirm('Are you sure you want to reject this order?')) {
@@ -3562,7 +3599,7 @@ function showNotification(message, type) {
     $('body').append(notification);
 
     //setTimeout(() => {
-        $('.alert').fadeOut();
+    $('.alert').fadeOut();
     //}, 3000);
 }
 
@@ -3850,14 +3887,14 @@ $(document).on('click', '#btnViewHistory', function () {
       </div>
   `);
     //setTimeout(() => {
-        renderOrderHistory();
+    renderOrderHistory();
     //}, 300);
 });
 
 //Auto refresh every 30 seconds
 
 function printThermalBill(order) {
-    
+
     const payload = {
         OrderId: order.orderId || "",
         Name: order.customer || "",
@@ -3894,3 +3931,344 @@ function printThermalBill(order) {
             console.error("Print failed:", err);
         });
 }
+
+(function () {
+    // ── State ──────────────────────────────────────────────────────
+    let _tableNo = null;
+    let _categories = [];
+    let _subcats = [];
+    let _allItems = [];
+    let _activeCatId = null;
+    let _activeSubId = null;
+    let _cart = {};
+    let _loaded = false;
+
+    // ── Public API ─────────────────────────────────────────────────
+    window.openNewOrderModal = function (tableNo) {
+        _tableNo = tableNo;
+        document.getElementById('nomTableBadge').textContent = 'Table ' + tableNo;
+        document.getElementById('newOrderModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        _cart = {};
+        document.getElementById('nomCustName').value = '';
+        document.getElementById('nomCustPhone').value = '';
+        document.getElementById('nomSpecialNote').value = '';
+        updateSummary();
+        if (!_loaded) loadMenu();
+        else renderItems();
+    };
+
+    window.closeNewOrderModal = function () {
+        document.getElementById('newOrderModal').style.display = 'none';
+        document.body.style.overflow = '';
+    };
+
+    // ── Load Menu ──────────────────────────────────────────────────
+    function loadMenu() {
+        setLoading(true);
+        Promise.all([
+            fetch('/Home/GetMenuCategory').then(r => r.json()),
+            fetch('/Home/GetMenuSubcategory').then(r => r.json()),
+            fetch('/Home/GetMenuItem').then(r => r.json())
+        ]).then(function ([cats, subs, items]) {
+            _categories = Array.isArray(cats) ? cats : [];
+            _subcats = Array.isArray(subs) ? subs : [];
+            _allItems = Array.isArray(items) ? items : [];
+            _loaded = true;
+            buildCategoryList();
+            setLoading(false);
+        }).catch(function (err) {
+            console.error('Menu load failed', err);
+            setLoading(false);
+            document.getElementById('nomItemsGrid').innerHTML =
+                '<div class="nom-no-results">Failed to load menu. Please try again.</div>';
+        });
+    }
+
+    function setLoading(on) {
+        if (on) {
+            document.getElementById('nomItemsGrid').innerHTML =
+                '<div class="nom-loading"><div class="nom-spinner"></div><span>Loading menu…</span></div>';
+        }
+    }
+
+    // ── Categories ─────────────────────────────────────────────────
+    function buildCategoryList() {
+        const ul = document.getElementById('nomCatList');
+        ul.innerHTML = '';
+
+        // "All" entry
+        const allLi = document.createElement('li');
+        allLi.textContent = 'All Items';
+        allLi.className = 'active';
+        allLi.dataset.id = '';
+        allLi.onclick = () => selectCategory(null, allLi);
+        ul.appendChild(allLi);
+
+        _categories.forEach(cat => {
+            const li = document.createElement('li');
+            li.textContent = cat.categoryName || cat.name || cat.CategoryName || 'Category';
+            li.dataset.id = cat.id || cat.categoryId || cat.Id || '';
+            li.onclick = () => selectCategory(li.dataset.id, li);
+            ul.appendChild(li);
+        });
+
+        _activeCatId = null;
+        buildSubcatStrip();
+        renderItems();
+    }
+
+    function selectCategory(catId, el) {
+        _activeCatId = catId || null;
+        _activeSubId = null;
+        document.querySelectorAll('#nomCatList li').forEach(l => l.classList.remove('active'));
+        el.classList.add('active');
+        buildSubcatStrip();
+        renderItems();
+    }
+
+    // ── Subcategories ──────────────────────────────────────────────
+    function buildSubcatStrip() {
+        const strip = document.getElementById('nomSubcatStrip');
+        strip.innerHTML = '';
+
+        const subs = _activeCatId
+            ? _subcats.filter(s => String(s.categoryId || s.CategoryId || s.catId || '') === String(_activeCatId))
+            : _subcats;
+
+        if (subs.length === 0) { strip.style.display = 'none'; return; }
+        strip.style.display = 'flex';
+
+        // All sub-cat button
+        const allBtn = document.createElement('button');
+        allBtn.className = 'nom-subcat-btn active';
+        allBtn.textContent = 'All';
+        allBtn.onclick = () => selectSubcat(null, allBtn);
+        strip.appendChild(allBtn);
+
+        subs.forEach(sub => {
+            const btn = document.createElement('button');
+            btn.className = 'nom-subcat-btn';
+            btn.textContent = sub.subcategoryName || sub.subCategoryName || sub.name || sub.SubcategoryName || 'Sub';
+            btn.dataset.id = sub.id || sub.subcategoryId || sub.SubcategoryId || '';
+            btn.onclick = () => selectSubcat(btn.dataset.id, btn);
+            strip.appendChild(btn);
+        });
+    }
+
+    function selectSubcat(subId, el) {
+        _activeSubId = subId || null;
+        document.querySelectorAll('.nom-subcat-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        renderItems();
+    }
+
+    // ── Items ──────────────────────────────────────────────────────
+    function getFilteredItems() {
+        const search = (document.getElementById('nomSearch').value || '').toLowerCase().trim();
+        return _allItems.filter(item => {
+            const name = (item.itemName || item.name || item.ItemName || '').toLowerCase();
+            const catId = String(item.categoryId || item.CategoryId || item.catId || '');
+            const subId = String(item.subcategoryId || item.SubcategoryId || item.subCategoryId || '');
+
+            if (search && !name.includes(search)) return false;
+            if (_activeCatId && catId !== String(_activeCatId)) return false;
+            if (_activeSubId && subId !== String(_activeSubId)) return false;
+            return true;
+        });
+    }
+
+    function renderItems() {
+        const grid = document.getElementById('nomItemsGrid');
+        const items = getFilteredItems();
+
+        if (items.length === 0) {
+            grid.innerHTML = '<div class="nom-no-results">No items found.</div>';
+            return;
+        }
+
+        grid.innerHTML = '';
+        items.forEach(item => {
+            const id = item.id || item.itemId || item.Id;
+            const name = item.itemName || item.name || item.ItemName || 'Item';
+            const price = Number(item.price || item.Price || item.fullPrice || 0);
+            const halfP = Number(item.halfPrice || item.HalfPrice || (price * 0.5) || 0);
+            const isVeg = (item.isVeg !== undefined ? item.isVeg : item.IsVeg) !== false;
+
+            const cartEntry = _cart[id];
+            const inCart = !!cartEntry;
+            const fullQty = cartEntry ? cartEntry.full : 0;
+            const halfQty = cartEntry ? cartEntry.half : 0;
+
+            const card = document.createElement('div');
+            card.className = 'nom-item-card' + (inCart ? ' in-cart' : '');
+            card.innerHTML = `
+        ${inCart ? '<div class="nom-cart-badge">' + (fullQty + halfQty) + '</div>' : ''}
+        <div class="nom-item-top">
+          <div class="nom-item-${isVeg ? 'veg' : 'nonveg'}"></div>
+          <div class="nom-item-name">${name}</div>
+        </div>
+        <div class="nom-item-price">₹${price.toFixed(2)}</div>
+        <div class="nom-portion-row">
+          <button class="nom-portion-btn${fullQty > 0 ? ' has-qty' : ''}" onclick="nomAddPortion(${id},${price},'full',event)">
+            <span>FULL</span>
+            <span>${fullQty > 0 ? '× ' + fullQty : '₹' + price.toFixed(0)}</span>
+          </button>
+          ${halfP > 0 ? `
+          <button class="nom-portion-btn${halfQty > 0 ? ' has-qty' : ''}" onclick="nomAddPortion(${id},${halfP},'half',event)">
+            <span>HALF</span>
+            <span>${halfQty > 0 ? '× ' + halfQty : '₹' + halfP.toFixed(0)}</span>
+          </button>` : ''}
+        </div>
+      `;
+            // Store item meta on element for reference
+            card.dataset.itemId = id;
+            grid.appendChild(card);
+        });
+    }
+
+    // ── Cart operations ────────────────────────────────────────────
+    window.nomAddPortion = function (itemId, price, portion, e) {
+        e && e.stopPropagation();
+        const item = _allItems.find(i => String(i.id || i.itemId || i.Id) === String(itemId));
+        if (!item) return;
+
+        if (!_cart[itemId]) {
+            _cart[itemId] = { item, full: 0, half: 0, fullPrice: 0, halfPrice: 0 };
+        }
+        if (portion === 'full') {
+            _cart[itemId].full++;
+            _cart[itemId].fullPrice = price;
+        } else {
+            _cart[itemId].half++;
+            _cart[itemId].halfPrice = price;
+        }
+
+        updateSummary();
+        renderItems();
+    };
+
+    window.nomRemoveCartItem = function (itemId) {
+        delete _cart[itemId];
+        updateSummary();
+        renderItems();
+    };
+
+    function updateSummary() {
+        const cartContainer = document.getElementById('nomCartItems');
+        const entries = Object.values(_cart).filter(e => e.full > 0 || e.half > 0);
+
+        let total = 0;
+        let count = 0;
+
+        if (entries.length === 0) {
+            cartContainer.innerHTML = `
+        <div class="nom-cart-empty">
+          <svg width="36" height="36" fill="none" stroke="#CBD5E1" stroke-width="1.5" viewBox="0 0 24 24">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.99-1.61L23 6H6"/>
+          </svg>
+          <p>No items yet</p>
+        </div>`;
+        } else {
+            cartContainer.innerHTML = '';
+            entries.forEach(entry => {
+                const id = entry.item.id || entry.item.itemId || entry.item.Id;
+                const name = entry.item.itemName || entry.item.name || entry.item.ItemName || '';
+                const rowTotal = (entry.full * entry.fullPrice) + (entry.half * entry.halfPrice);
+                total += rowTotal;
+                count += entry.full + entry.half;
+
+                const portions = [];
+                if (entry.full > 0) portions.push(entry.full + ' Full');
+                if (entry.half > 0) portions.push(entry.half + ' Half');
+
+                const row = document.createElement('div');
+                row.className = 'nom-cart-row';
+                row.innerHTML = `
+          <div class="nom-cart-row-info">
+            <div class="nom-cart-row-name">${name}</div>
+            <div class="nom-cart-row-portions">${portions.join(' + ')}</div>
+          </div>
+          <div class="nom-cart-row-price">₹${rowTotal.toFixed(2)}</div>
+          <button class="nom-cart-remove" onclick="nomRemoveCartItem(${id})" title="Remove">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>`;
+                cartContainer.appendChild(row);
+            });
+        }
+
+        document.getElementById('nomSubtotal').textContent = '₹' + total.toFixed(2);
+        document.getElementById('nomGrandTotal').textContent = '₹' + total.toFixed(2);
+        document.getElementById('nomCartCount').textContent = count + (count === 1 ? ' item' : ' items');
+        document.getElementById('nomCartTotal').textContent = '₹' + total.toFixed(2);
+        document.getElementById('nomPlaceBtn').disabled = count === 0;
+    }
+
+    // ── Search ─────────────────────────────────────────────────────
+    document.getElementById('nomSearch').addEventListener('input', function () {
+        if (_loaded) renderItems();
+    });
+
+    // ── Place Order ────────────────────────────────────────────────
+    window.placeNewOrder = function () {
+        const entries = Object.values(_cart).filter(e => e.full > 0 || e.half > 0);
+        if (entries.length === 0) return;
+
+        const orderItems = entries.map(entry => ({
+            full: entry.full,
+            half: entry.half,
+            item_id: Number(entry.item.id || entry.item.itemId || entry.item.Id),
+            Price: Number(entry.fullPrice || entry.item.price || entry.item.Price || 0)
+        }));
+
+        const payload = {
+            selectedTable: _tableNo,
+            orderItems: orderItems,
+            customerName: document.getElementById('nomCustName').value.trim() || 'Walk-in',
+            userPhone: document.getElementById('nomCustPhone').value.trim() || '',
+            specialInstruction: document.getElementById('nomSpecialNote').value.trim() || '',
+            OrderType: 'DineIn',
+            deliveryType: 'DineIn'
+        };
+
+        const btn = document.getElementById('nomPlaceBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<div class="nom-spinner" style="width:18px;height:18px;border-width:2px;border-color:rgba(255,255,255,.3);border-top-color:#fff"></div> Placing…';
+
+        $.ajax({
+            url: '/Home/PlaceOrder',
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            data: JSON.stringify(payload),
+            success: function () {
+                btn.disabled = false;
+                btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                showSuccessMessage('Order placed for Table ' + _tableNo + '!');
+                closeNewOrderModal();
+
+                if (typeof loadTableOrders === 'function') loadTableOrders();
+                if (typeof loadTableCount === 'function') loadTableCount();
+            },
+            error: function (xhr) {
+                btn.disabled = false;
+                btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                alert('Failed to place order: ' + (xhr.responseText || 'Server error'));
+            }
+        });
+    };
+
+    // Close on overlay click
+    document.getElementById('newOrderModal').addEventListener('click', function (e) {
+        if (e.target === this) closeNewOrderModal();
+    });
+
+    // Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && document.getElementById('newOrderModal').style.display !== 'none') {
+            closeNewOrderModal();
+        }
+    });
+})();

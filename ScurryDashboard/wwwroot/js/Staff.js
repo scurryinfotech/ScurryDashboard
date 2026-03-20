@@ -82,6 +82,7 @@
         $.ajax({
             url: `${CTRL}/GetAll`, method: 'GET',
             success: data => {
+                data = data.filter(f => f.)
                 initTable(data);
                 $('#tblLoader').removeClass('show');
             },

@@ -1,0 +1,88 @@
+﻿@{
+    ViewData["Title"] = "Table Manager";
+    Layout = "~/Views/Shared/_NewOrderLayout.cshtml";
+}
+
+@* Uses _NewOrderLayout which loads: FontAwesome + TableManager.css + TableManager.js *@
+
+<div id="tmWrap">
+
+    @* ── TOP BAR ── *@
+    <div class="tm-top">
+        <a class="tm-logo" href="/">
+            <i class="fas fa-fire-flame-curved"></i>
+            <span>GrillNShakes</span>
+        </a>
+
+        <div class="tm-top-title">
+            <i class="fas fa-table-cells-large"></i>
+            Table Status Board
+        </div>
+
+        <div class="tm-legend">
+            <div class="tm-leg"><div class="tm-leg-dot free"></div> Free</div>
+            <div class="tm-leg"><div class="tm-leg-dot occupied"></div> Occupied</div>
+            <div class="tm-leg"><div class="tm-leg-dot billing"></div> Billing</div>
+            <small id="tmLastUpdate" style="color:#666;font-size:.65rem;margin-left:auto"></small>
+        </div>
+
+        <div class="tm-top-actions">
+            <button class="tm-btn tm-btn-refresh" onclick="refreshNow()">
+                <i class="fas fa-arrows-rotate" id="tmRefreshIcon"></i> Refresh
+            </button>
+            <a class="tm-btn tm-btn-neworder" href="/Home/NewOrder">
+                <i class="fas fa-plus"></i> New Order
+            </a>
+            <a class="tm-btn tm-btn-back" href="/">
+                <i class="fas fa-arrow-left"></i> Home
+            </a>
+        </div>
+    </div>
+
+    @* ── STATS BAR ── *@
+    <div class="tm-stats">
+        <div class="tm-stat">
+            <div class="tm-stat-num all" id="tmStatTotal">—</div>
+            <div class="tm-stat-lbl">Total Tables</div>
+        </div>
+        <div class="tm-stat">
+            <div class="tm-stat-num free" id="tmStatFree">—</div>
+            <div class="tm-stat-lbl">🟢 Free</div>
+        </div>
+        <div class="tm-stat">
+            <div class="tm-stat-num occupied" id="tmStatOccupied">—</div>
+            <div class="tm-stat-lbl">🔴 Occupied</div>
+        </div>
+        <div class="tm-stat">
+            <div class="tm-stat-num billing" id="tmStatBilling">—</div>
+            <div class="tm-stat-lbl">🟠 Billing</div>
+        </div>
+    </div>
+
+    @* ── TABLE GRID ── *@
+    <div class="tm-body" id="tmGrid">
+        @* Skeleton loaders — replaced by JS *@
+        @for (int i = 0; i < 16; i++) {
+            <div class="tm-skel"></div>
+        }
+    </div>
+
+</div>
+
+@* ── ORDER DETAIL SIDE PANEL ── *@
+<div class="tm-modal-bg" id="tmPanelBg">
+    <div class="tm-modal-panel">
+        <div class="tm-modal-hdr">
+            <h3 id="tmPanelTitle"><i class="fas fa-table"></i> Table Detail</h3>
+            <button class="tm-modal-x" onclick="closePanel()">&times;</button>
+        </div>
+        <div class="tm-modal-body" id="tmPanelBody">
+            @* Filled by JS *@
+        </div>
+        <div class="tm-modal-ftr" id="tmPanelFtr">
+            @* Buttons filled by JS *@
+        </div>
+    </div>
+</div>
+
+<div id="tmToast"></div>

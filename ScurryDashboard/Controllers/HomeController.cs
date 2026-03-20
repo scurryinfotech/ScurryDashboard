@@ -58,6 +58,39 @@ namespace ScurryDashboard.Controllers
                 return StatusCode(500, "Error calling Order API");
             }
         }
+        [HttpPost]
+public async Task<IActionResult> SaveTableOrder([FromBody] OrderModel order)
+{
+    if (order == null)
+        return BadRequest("Order payload is empty");
+
+    var client = _httpClientFactory.CreateClient();
+    var apiUrl = apiPort + "/api/Order/Post";   
+
+    string jwtToken = token;
+    client.DefaultRequestHeaders.Authorization =
+        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+
+    try
+    {
+        var json    = JsonSerializer.Serialize(order);
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync(apiUrl, content);
+        var raw      = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+            return Ok(new { message = "Order saved successfully" });
+
+        _logger.LogError("Order API returned {Code}: {Body}", response.StatusCode, raw);
+        return StatusCode((int)response.StatusCode, raw);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error posting order to Order API");
+        return StatusCode(500, "Error posting order to Order API");
+    }
+}
 
         [HttpGet]
         public async Task<IActionResult> GetAvailabilityHomeDelivery()
@@ -320,6 +353,17 @@ namespace ScurryDashboard.Controllers
             return View();
         }
 
+        [HttpGet]
+        public IActionResult NewOrder()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult TableManager()
+        {
+            return View();
+        }
         public IActionResult Index()
         {
             return View();

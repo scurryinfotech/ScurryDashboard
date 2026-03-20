@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -7,9 +7,9 @@
 
     <!--  ALL LOCAL - works 100% offline -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/cdn/css/bootstrap4.min.css" />
-    <link rel="stylesheet" href="~/cdn/css/dataTables.bootstrap4.min.css" />
-    <link rel="stylesheet" href="~/cdn/css/all.min.css" />
+    <link rel="stylesheet" href="~/vendor/css/bootstrap4.min.css" />
+    <link rel="stylesheet" href="~/vendor/css/dataTables.bootstrap4.min.css" />
+    <link rel="stylesheet" href="~/vendor/css/all.min.css" />
 
     <!-- Your own CSS files -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -31,60 +31,60 @@
             <div class="gns-sidebar__section-label">Overview</div>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" && ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")"
-                   asp-controller="Home" asp-action="Index">
+               asp-controller="Home" asp-action="Index">
                 <i class="fa-solid fa-house"></i><span>Home</span>
             </a>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" && ViewContext.RouteData.Values["controller"]?.ToString() == "DashboardContrller" ? "active" : "")"
-                   asp-controller="Dashboard" asp-action="Index">
+               asp-controller="Dashboard" asp-action="Index">
                 <i class="fas fa-gauge-high"></i><span>Dashboard</span>
             </a>
 
             <div class="gns-sidebar__section-label">Management</div>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Staff" ? "active" : "")"
-                   asp-controller="Staff" asp-action="Index">
+               asp-controller="Staff" asp-action="Index">
                 <i class="fas fa-users"></i><span>Staff</span>
             </a>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Salary" ? "active" : "")"
-                   asp-controller="Salary" asp-action="Index">
+               asp-controller="Salary" asp-action="Index">
                 <i class="fas fa-money-check-dollar"></i><span>Salary</span>
             </a>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "ShopExpenses" ? "active" : "")"
-                   asp-controller="ShopExpenses" asp-action="Index">
+               asp-controller="ShopExpenses" asp-action="Index">
                 <i class="fas fa-store"></i><span>Shop Expenses</span>
             </a>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "DailyExpenses" ? "active" : "")"
-                   asp-controller="DailyExpenses" asp-action="Index">
+               asp-controller="DailyExpenses" asp-action="Index">
                 <i class="fas fa-receipt"></i><span>Daily Expenses</span>
             </a>
 
             <div class="gns-sidebar__section-label">Orders</div>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "ManageMenu" ? "active" : "")"
-                   asp-controller="Home" asp-action="ManageMenu">
+               asp-controller="Home" asp-action="ManageMenu">
                 <i class="fas fa-utensils"></i><span>Manage Menu</span>
             </a>
 
             <div class="gns-sidebar__section-label">Quick Actions</div>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "TableManager" ? "active" : "")"
-                   asp-controller="Home" asp-action="TableManager">
+               asp-controller="Home" asp-action="TableManager">
                 <i class="fas fa-table-cells-large" style="color:#e67e22"></i>
                 <span>Table Manager</span>
             </a>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "NewOrder" ? "active" : "")"
-                   asp-controller="Home" asp-action="NewOrder">
+               asp-controller="Home" asp-action="NewOrder">
                 <i class="fas fa-plus-circle" style="color:#27ae60"></i>
                 <span>New Order</span>
             </a>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "PhoneOrder" ? "active" : "")"
-                   asp-controller="Home" asp-action="PhoneOrder">
+               asp-controller="Home" asp-action="PhoneOrder">
                 <i class="fas fa-phone-volume" style="color:#e67e22"></i>
                 <span>Phone Order</span>
             </a>
@@ -115,19 +115,19 @@
 
                 <!-- Table Manager button -->
                 <a asp-controller="Home" asp-action="TableManager"
-                       style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#e67e22,#d35400);color:#fff;border:none;border-radius:7px;padding:7px 15px;font-size:.8rem;font-weight:800;text-decoration:none;box-shadow:0 3px 10px rgba(230,126,34,.35);">
+                   style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#e67e22,#d35400);color:#fff;border:none;border-radius:7px;padding:7px 15px;font-size:.8rem;font-weight:800;text-decoration:none;box-shadow:0 3px 10px rgba(230,126,34,.35);">
                     <i class="fas fa-table-cells-large"></i> Tables
                 </a>
 
                 <!-- New Order button -->
                 <a asp-controller="Home" asp-action="NewOrder"
-                       style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#27ae60,#1e8449);color:#fff;border:none;border-radius:7px;padding:7px 15px;font-size:.8rem;font-weight:800;text-decoration:none;box-shadow:0 3px 10px rgba(39,174,96,.35);">
+                   style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#27ae60,#1e8449);color:#fff;border:none;border-radius:7px;padding:7px 15px;font-size:.8rem;font-weight:800;text-decoration:none;box-shadow:0 3px 10px rgba(39,174,96,.35);">
                     <i class="fas fa-plus"></i> New Order
                 </a>
 
                 <!-- Phone Order button -->
                 <a asp-controller="Home" asp-action="PhoneOrder"
-                       style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#d35400,#e67e22);color:#fff;border:none;border-radius:7px;padding:7px 15px;font-size:.8rem;font-weight:800;text-decoration:none;box-shadow:0 3px 10px rgba(211,84,0,.3);">
+                   style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#d35400,#e67e22);color:#fff;border:none;border-radius:7px;padding:7px 15px;font-size:.8rem;font-weight:800;text-decoration:none;box-shadow:0 3px 10px rgba(211,84,0,.3);">
                     <i class="fas fa-phone-volume"></i> Phone Order
                 </a>
 
@@ -151,11 +151,11 @@
     </div>
 
     <!-- ALL LOCAL JS - works 100% offline -->
-    <script src="~/cdn/js/jquery-3.7.1.min.js"></script>
-    <script src="~/cdn/js/popper.min.js"></script>
-    <script src="~/cdn/js/bootstrap.min.js"></script>
-    <script src="~/cdn/js/jquery.dataTables.min.js"></script>
-    <script src="~/cdn/js/dataTables.bootstrap4.min.js"></script>
+    <script src="~/vendor/js/jquery-3.7.1.min.js"></script>
+    <script src="~/vendor/js/popper.min.js"></script>
+    <script src="~/vendor/js/bootstrap.min.js"></script>
+    <script src="~/vendor/js/jquery.dataTables.min.js"></script>
+    <script src="~/vendor/js/dataTables.bootstrap4.min.js"></script>
 
     <!-- Your own JS files -->
     <script src="~/js/site.js" asp-append-version="true"></script>
