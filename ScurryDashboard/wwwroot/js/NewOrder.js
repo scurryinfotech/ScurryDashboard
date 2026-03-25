@@ -636,20 +636,18 @@ function postOrder(s) {
                 : s.orderType;
 
     var payload = {
-
-        TableNo: s.tableNo || null,
-        CreatedBy: 2,  
-        CustomerName: s.customerName || '',
-        phone: s.phone || '',
+        selectedTable: s.tableNo || null,       
+        userId: 2,                        
+        customerName: s.customerName || '',     
+        userPhone: s.phone || '',            
         Address: s.address || '',
         OrderType: orderType || '',
         specialInstruction: notes || '',
-
-        OrderItems: $.map(s.lines, function (l) {
+        orderItems: $.map(s.lines, function (l) {    
             return {
                 item_id: l.itemId,
-                FullPortion: l.fullPortion,
-                HalfPortion: l.halfPortion,
+                full: l.fullPortion,          
+                half: l.halfPortion,          
                 Price: l.price
             };
         })
@@ -661,14 +659,11 @@ function postOrder(s) {
         contentType: 'application/json',
         headers: { 'Authorization': 'Bearer ' + token },
         data: JSON.stringify(payload),
-
         success: function () {
             console.log('[GNS] Order saved OK');
         },
-
         error: function (xhr, status, err) {
             console.error('[GNS] Post error:', xhr.status, err, xhr.responseText);
-
             if (xhr.status === 401)
                 toast('Session expired — please log in again', 'error');
             else

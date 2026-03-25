@@ -3674,7 +3674,7 @@ window.restaurantDashboard = {
     viewOrderDetails,
     updateOrderStatus,
     filterOrders,
-    //rejectOrder,
+    rejectOrder,
     acceptCoffeeOrder,
     deliverCoffeeOrder,
     updateCoffeeOrderStatus
