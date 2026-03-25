@@ -2,11 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScurryDashboard.Models;
 using System.Diagnostics;
-using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
-using System.Net.Http.Headers;
 
 namespace ScurryDashboard.Controllers
 {
@@ -59,44 +57,28 @@ namespace ScurryDashboard.Controllers
             }
         }
         [HttpPost]
-public async Task<IActionResult> SaveTableOrder([FromBody] OrderModel order)
-{
-    if (order == null)
-        return BadRequest("Order payload is empty");
+        public async Task<IActionResult> SaveTableOrder([FromBody] OrderModel order)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = apiPort + "/api/Order/Save?UserName=" + userName;
 
-    var client = _httpClientFactory.CreateClient();
-    var apiUrl = apiPort + "/api/Order/Post";   
+            var json = JsonSerializer.Serialize(order);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-    string jwtToken = token;
-    client.DefaultRequestHeaders.Authorization =
-        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+            var response = await client.PostAsync(apiUrl, content);
+            var body = await response.Content.ReadAsStringAsync();
 
-    try
-    {
-        var json    = JsonSerializer.Serialize(order);
-        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            if (response.IsSuccessStatusCode)
+                return Ok(body);
 
-        var response = await client.PostAsync(apiUrl, content);
-        var raw      = await response.Content.ReadAsStringAsync();
-
-        if (response.IsSuccessStatusCode)
-            return Ok(new { message = "Order saved successfully" });
-
-        _logger.LogError("Order API returned {Code}: {Body}", response.StatusCode, raw);
-        return StatusCode((int)response.StatusCode, raw);
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error posting order to Order API");
-        return StatusCode(500, "Error posting order to Order API");
-    }
-}
+            return StatusCode((int)response.StatusCode, "Failed to save order");
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetAvailabilityHomeDelivery()
         {
             var client = _httpClientFactory.CreateClient();
-            var apiUrl = apiPort + "/api/Order/GetAvailabilityOnline";//?UserName=" + userName
+            var apiUrl = apiPort + "/api/Order/GetAvailabilityOnline";
 
             string jwtToken = token;
             client.DefaultRequestHeaders.Authorization =
@@ -623,7 +605,7 @@ public async Task<IActionResult> SaveTableOrder([FromBody] OrderModel order)
                 var client = _httpClientFactory.CreateClient();
                 var apiUrl = apiPort + "/api/Order/UpdateCoffeeOrder";
 
-                var content = JsonContent.Create(model); 
+                var content = JsonContent.Create(model);
                 var response = await client.PostAsync(apiUrl, content);
                 if (response.IsSuccessStatusCode) return Ok();
                 var body = await response.Content.ReadAsStringAsync();
@@ -964,7 +946,7 @@ public async Task<IActionResult> SaveTableOrder([FromBody] OrderModel order)
             }
 
             var client = _httpClientFactory.CreateClient();
-            var apiUrl = $"{apiPort}/api/Order/SetTableCount?count="+count;
+            var apiUrl = $"{apiPort}/api/Order/SetTableCount?count=" + count;
 
             client.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
