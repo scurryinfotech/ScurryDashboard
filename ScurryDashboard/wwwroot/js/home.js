@@ -267,7 +267,7 @@ $(document).on("click", "#stopBeepBtn", function () {
 
 function initHomeSwitch() {
     $.ajax({
-        url: '/Home/GetAvailabilityHomeDelivery',
+        url: '/R/GetAvailabilityHomeDelivery',
         method: 'GET',
         contentType: 'application/json',
         success: function (data) {
@@ -399,7 +399,7 @@ function updateHomeUI() {
 function toggleHomeAvailability(isAvailable) {
 
     $.ajax({
-        url: '/Home/SetAvailabilityHomeDelivery',
+        url: '/Repository/SetAvailabilityHomeDelivery',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(isAvailable),
@@ -429,7 +429,7 @@ function loadOrderHistory(isInitial = false) {
     isLoading = true;
     $('#loadingSpinner').addClass('active');
     $.ajax({
-        url: '/Home/GetOrderHistory',
+        url: '/Repository/GetOrderHistory',
         type: 'GET',
         success: function (data) {
             allOrdersData = data || [];
@@ -836,7 +836,7 @@ $(document).on('click', '.btn-view-bill', function () {
 
 
     $.ajax({
-        url: `/Home/GetBillData?orderId=${orderId}`,
+        url: `/Repository/GetBillData?orderId=${orderId}`,
         method: "GET",
         success: function (billResponse) {
             buildBillUI(billResponse);
@@ -963,7 +963,7 @@ $(document).on("show.bs.modal", "#divInProgressModal", function () {
 // ========== Data Loading ==========
 function loadTableOrders() {
     $.ajax({
-        url: "/home/GetOrder",
+        url: "/Repository/GetOrder",
         type: "GET",
         success: function (data) {
             window.liveOrdersData = data || [];
@@ -1136,7 +1136,7 @@ function filterCompletedOrdersToHistory() {
 
 function loadTableCount() {
     $.ajax({
-        url: "/home/GetTableCount",
+        url: "/Repository/GetTableCount",
         type: "GET",
         success: function (data) {
             let count = typeof data === "object" ? data.count : parseInt(data);
@@ -1310,12 +1310,13 @@ function renderOrderHistory() {
 
             const displayDate = getOrderDate(order)
                 ? new Date(getOrderDate(order)).toLocaleString("en-IN", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
                     hour: "2-digit",
                     minute: "2-digit",
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour12: true
+                    second: "2-digit",
+                    hour12: false
                 })
                 : "N/A";
 
@@ -1945,7 +1946,7 @@ function handleOnlinePaymentConfirm() {
 
     $("#confirmPayment").prop("disabled", true);
     $.ajax({
-        url: "/home/SaveOrderSummaryOnline",
+        url: "/Repository/SaveOrderSummaryOnline",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(summaryData),
@@ -2703,7 +2704,7 @@ function deleteOrder(id) {
 
                 renderOrders();
 
-                if (typeof updateNewOrdersBadge === 'function') updateNewOrdersBadge();
+                updateNewOrdersBadge();
 
                 showSuccessMessage(`Online order ${idStr} removed`);
 
@@ -3271,6 +3272,7 @@ function updateNewOrdersBadge() {
 //                platform: 'zomato',
 //                customer: order.customer_name,
 //                phone: order.customer_phone,
+//                address: order.address,
 //                items: order.items.map(item => ({
 //                    name: item.dish_name,
 //                    quantity: item.quantity,
@@ -3670,33 +3672,6 @@ function getOrdersFromRestaurant() {
     });
 }
 
-window.restaurantDashboard = {
-    viewOrderDetails,
-    updateOrderStatus,
-    filterOrders,
-    rejectOrder,
-    acceptCoffeeOrder,
-    deliverCoffeeOrder,
-    updateCoffeeOrderStatus
-};
-
-function mapCoffeeStatus(apiStatus) {
-
-    switch (apiStatus) {
-
-        case 'Order In Progress':
-            return 'new';
-
-        case 'Out for delivery':
-            return 'confirmed';
-
-        case 'Delivered':
-            return 'confirmed';
-
-        default:
-            return 'new';
-    }
-}
 function getOrdersFromCoffee() {
 
     $.ajax({
@@ -3720,21 +3695,18 @@ function getOrdersFromCoffee() {
                         phone: order.customerPhone || 'N/A',
                         items: [],
                         total: 0,
-                        status: mapCoffeeStatus(order.orderStatus),
+                        status: order.orderStatus,
                         timestamp: new Date(order.orderDate),
                         deliveryTime: '5-10 min',
-                        address: 'Pickup',
-                        specialInstructions: order.notes
+                        address: 'Pickup'
                     };
                 }
 
                 groupedOrders[order.orderNumber].items.push({
-
                     itemId: order.id,
                     name: order.coffeeName,
                     quantity: order.quantity,
                     price: order.price
-
                 });
 
                 groupedOrders[order.orderNumber].total += order.price * order.quantity;
@@ -3909,7 +3881,7 @@ function printThermalBill(order) {
         })),
 
         Subtotal: Number(order.total) || 0,
-        Discount: Number(order.discountAmount || order.discount || 0),
+        Discount: Number(order.discountAmount) || 0,
         Total: Number(order.total) || 0,
 
         PrinterName: "Everycom-58-Series"
@@ -3967,9 +3939,9 @@ function printThermalBill(order) {
     function loadMenu() {
         setLoading(true);
         Promise.all([
-            fetch('/Home/GetMenuCategory').then(r => r.json()),
-            fetch('/Home/GetMenuSubcategory').then(r => r.json()),
-            fetch('/Home/GetMenuItem').then(r => r.json())
+            fetch('/GetMenuCategory').then(r => r.json()),
+            fetch('/GetMenuSubcategory').then(r => r.json()),
+            fetch('/GetMenuItem').then(r => r.json())
         ]).then(function ([cats, subs, items]) {
             _categories = Array.isArray(cats) ? cats : [];
             _subcats = Array.isArray(subs) ? subs : [];
@@ -4130,7 +4102,7 @@ function printThermalBill(order) {
     // ── Cart operations ────────────────────────────────────────────
     window.nomAddPortion = function (itemId, price, portion, e) {
         e && e.stopPropagation();
-        const item = _allItems.find(i => String(i.id || i.itemId || i.Id) === String(itemId));
+        const item = _allItems.find(i => String(i.id || i.itemId || i.ItemId) === String(itemId));
         if (!item) return;
 
         if (!_cart[itemId]) {
@@ -4207,11 +4179,6 @@ function printThermalBill(order) {
         document.getElementById('nomPlaceBtn').disabled = count === 0;
     }
 
-    // ── Search ─────────────────────────────────────────────────────
-    document.getElementById('nomSearch').addEventListener('input', function () {
-        if (_loaded) renderItems();
-    });
-
     // ── Place Order ────────────────────────────────────────────────
     window.placeNewOrder = function () {
         const entries = Object.values(_cart).filter(e => e.full > 0 || e.half > 0);
@@ -4235,8 +4202,10 @@ function printThermalBill(order) {
         };
 
         const btn = document.getElementById('nomPlaceBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<div class="nom-spinner" style="width:18px;height:18px;border-width:2px;border-color:rgba(255,255,255,.3);border-top-color:#fff"></div> Placing…';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="nom-spinner" style="width:18px;height:18px;border-width:2px;border-color:rgba(255,255,255,.3);border-top-color:#fff"></div> Placing…';
+        }
 
         $.ajax({
             url: '/Home/PlaceOrder',
@@ -4244,8 +4213,10 @@ function printThermalBill(order) {
             contentType: 'application/json; charset=utf-8',
             data: JSON.stringify(payload),
             success: function () {
-                btn.disabled = false;
-                btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                }
                 showSuccessMessage('Order placed for Table ' + _tableNo + '!');
                 closeNewOrderModal();
 
@@ -4253,22 +4224,47 @@ function printThermalBill(order) {
                 if (typeof loadTableCount === 'function') loadTableCount();
             },
             error: function (xhr) {
-                btn.disabled = false;
-                btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                }
                 alert('Failed to place order: ' + (xhr.responseText || 'Server error'));
             }
         });
     };
 
     // Close on overlay click
-    document.getElementById('newOrderModal').addEventListener('click', function (e) {
-        if (e.target === this) closeNewOrderModal();
-    });
+    const _newOrderModal = document.getElementById('newOrderModal');
+    if (_newOrderModal) {
+        _newOrderModal.addEventListener('click', function (e) {
+            if (e.target === this) closeNewOrderModal();
+        });
+    }
 
     // Escape key
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && document.getElementById('newOrderModal').style.display !== 'none') {
-            closeNewOrderModal();
+        if (e.key === 'Escape') {
+            const _m = document.getElementById('newOrderModal');
+            if (_m && _m.style && _m.style.display !== 'none') {
+                closeNewOrderModal();
+            }
         }
     });
+
+    // Replace the direct call with a safe binder
+function bindNomSearch() {
+  const el = document.getElementById('nomSearch');
+  if (el) {
+    el.addEventListener('input', function () {
+      if (_loaded) renderItems();
+    });
+  }
+}
+
+// If DOM not ready, wait; otherwise bind now
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindNomSearch);
+} else {
+  bindNomSearch();
+}
 })();

@@ -1,20 +1,13 @@
-﻿using System.Text.Json.Serialization;
-
-namespace ScurryDashboard.Models
+﻿namespace OrderService.Model
 {
-    public class UpdateonlineOrder
+    public class OnlineOrderModel
     {
-        [JsonPropertyName("orderId")]
         public string OrderId { get; set; }
-
-        [JsonPropertyName("orderStatus")]
         public int OrderStatus { get; set; }
 
         public string? paymentMode { get; set; }
 
         public int? DeliveryStaffId { get; set; }
-
-
 
     }
 }

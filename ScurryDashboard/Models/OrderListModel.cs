@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Text.Json.Serialization;
 
-public class OrderListModel
+namespace ScurryDashboard.Models
+{
+    public class OrderListModel
 {
     [JsonPropertyName("tableNo")]
     public int? TableNo { get; set; }
@@ -59,6 +61,15 @@ public class OrderListModel
 
     [JsonPropertyName ("specialInstructions")]
     public string? specialInstructions { get; set; }
-    
 
+    // additional properties used in repositories
+    public DateTime? CreatedDate { get; set; }
+    // keep legacy lowercase field used in some code
+    public string? paymentMode { get => PaymentMode; set => PaymentMode = value; }
+    public string? userId { get; set; }
+    public string? Discount { get; set; }
+    public string? DeliveryName { get; set; }
+    public string? DeliveryPhone { get; set; }
+
+    }
 }
