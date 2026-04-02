@@ -5,7 +5,7 @@ namespace OrderService.Repository.Interface
 {
     public interface IOrderRepository
     {
-        int GetTableCount(string userName);
+        Task<int> GetTableCount(string userName);
         Task<List<OrderListModel>> GetOrder(string UserName);
         Task<List<MenuCategory>> GetMenuCategory(string UserName);
         Task<List<MenuSubcategory>> GetMenuSubcategory(string UserName);

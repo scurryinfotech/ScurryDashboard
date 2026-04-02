@@ -32,7 +32,8 @@ namespace OrderService.Repository.Service
             }
         }
 
-        public int GetTableCount(string userName)
+        // Changed to async to match IOrderRepository signature (Task<int>)
+        public async Task<int> GetTableCount(string userName)
         {
             int tableCount = 0;
             try
@@ -42,7 +43,7 @@ namespace OrderService.Repository.Service
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@UserName", userName);
-                    object result = cmd.ExecuteScalar();
+                    var result = await cmd.ExecuteScalarAsync();
                     if (result != null && result != DBNull.Value)
                     {
                         tableCount = Convert.ToInt32(result);

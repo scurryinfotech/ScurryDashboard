@@ -496,7 +496,7 @@ namespace ScurryDashboard.Controllers
         {
             try
             {
-                var count = _orderRepository.GetTableCount(_userName);
+                var count = await _orderRepository.GetTableCount(_userName); 
                 return Json(count);
             }
             catch (Exception ex)

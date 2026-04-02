@@ -3,7 +3,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddScoped<OrderService.Repository.Interface.IOrderRepository, OrderService.Repository.Service.OrderRepository>();
 builder.Services.AddHttpClient("ApiClient", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Url"] ?? "https://localhost:7104");
@@ -15,10 +14,14 @@ var useSqlite = builder.Configuration.GetValue<bool>("UseSQLite", true);
 if (useSqlite)
 {
     builder.Services.AddScoped<OrderService.Repository.Interface.IShopExpenseRepository, OrderService.Repository.Service.ShopExpenseSQLiteRepository>();
+    builder.Services.AddScoped<OrderService.Repository.Interface.IOrderRepository, OrderService.Repository.Service.OrderSQLiteRepository>();
+
 }
 else
 {
     builder.Services.AddScoped<OrderService.Repository.Interface.IShopExpenseRepository, OrderService.Repository.Service.ShopExpenseRepository>();
+    builder.Services.AddScoped<OrderService.Repository.Interface.IOrderRepository, OrderService.Repository.Service.OrderRepository>();
+
 }
 
 builder.Services.AddSession(options =>

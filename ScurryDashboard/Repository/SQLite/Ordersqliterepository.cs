@@ -59,25 +59,36 @@ namespace OrderService.Repository.Service
         //  TABLE COUNT
         // ════════════════════════════════════════════════════════
 
-        public int GetTableCount(string userName)
+        public async Task<int> GetTableCount(string userName)
         {
             int tableCount = 0;
             try
             {
-                using var con = SQLiteHelper.OpenAsync(_sqliteCs).GetAwaiter().GetResult();
+                // DEBUG: remove this log once fixed
+                Console.WriteLine($"[GetTableCount] userName received: '{userName}'");
+
+                await using var con = await SQLiteHelper.OpenAsync(_sqliteCs);
                 var cmd = SQLiteHelper.Query(con, @"
-                    SELECT utm.TableCount
-                    FROM   UserTableMaster utm
-                    INNER JOIN Users u ON u.Id = utm.UserId
-                    WHERE  u.Username = @UserName");
+            SELECT utm.TableCount
+            FROM   UserTableMaster utm
+            INNER JOIN Users u ON u.Id = utm.UserId
+            WHERE  u.Username = @UserName");   
+
                 cmd.Parameters.AddWithValue("@UserName", userName);
-                var result = cmd.ExecuteScalar();
+                var result = await cmd.ExecuteScalarAsync();
+
+                Console.WriteLine($"[GetTableCount] DB result: '{result}'"); 
+
                 if (result != null && result != DBNull.Value)
                     tableCount = Convert.ToInt32(result);
             }
-            catch (Exception ex) { Console.WriteLine("GetTableCount Error: " + ex.Message); }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetTableCount Error: " + ex.Message);
+            }
             return tableCount;
         }
+
 
         // ════════════════════════════════════════════════════════
         //  ORDERS — GET
