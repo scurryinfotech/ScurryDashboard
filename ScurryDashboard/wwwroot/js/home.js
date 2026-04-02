@@ -2047,7 +2047,7 @@ function handleTablePaymentConfirm() {
     };
 
     $.ajax({
-        url: "/home/SaveOrderSummary",
+        url: "/Repository/SaveOrderSummary",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(summaryData),
@@ -2148,7 +2148,7 @@ function updateOrderQuantity(order, callback) {
     };
 
     $.ajax({
-        url: "/home/UpdateOrderItem",
+        url: "/Repository/UpdateOrderItem",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(payload),
@@ -2188,7 +2188,7 @@ function acceptOrder(order, callback) {
     };
 
     $.ajax({
-        url: "/home/UpdateOrderItem",
+        url: "/Repository/UpdateOrderItem",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(payload),
@@ -2383,7 +2383,7 @@ function completeOrder(order, callback) {
     };
 
     $.ajax({
-        url: "/home/UpdateOrderItem",
+        url: "/Repository/UpdateOrderItem",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(payload),
@@ -2447,7 +2447,7 @@ function completeTableOrder(order, callback) {
     };
 
     $.ajax({
-        url: "/home/UpdateTableOrderItem",
+        url: "/Repository/UpdateTableOrderItem",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(payload),
@@ -2630,7 +2630,7 @@ function deleteOrder(id) {
 
             $.ajax({
 
-                url: '/home/SoftDeleteOrder',
+                url: '/Repository/SoftDeleteOrder',
 
                 type: 'POST',
 
@@ -2686,7 +2686,7 @@ function deleteOrder(id) {
 
         $.ajax({
 
-            url: '/Home/RejectOnlineOrder',
+            url: '/Repository/RejectOnlineOrder',
 
             type: 'POST',
 
@@ -2730,7 +2730,7 @@ function deleteOrder(id) {
 
     $.ajax({
 
-        url: '/home/SoftDeleteOrder',
+        url: '/Repository/SoftDeleteOrder',
 
         type: 'POST',
 
@@ -3385,7 +3385,7 @@ function updateOrderStatusOnPlatform(orderId, status, platform) {
 // UPDATE ZOMATO ORDER STATUS
 function updateZomatoOrderStatus(orderId, status) {
     $.ajax({
-        url: '/home/UpdateOrderItem',
+        url: '/Repository/UpdateOrderItem',
         method: 'PUT',
         headers: {
             'Authorization': 'Bearer YOUR_ZOMATO_API_KEY',
@@ -3445,7 +3445,7 @@ function updateRestaurantOrderStatus(orderId, status, staffId = null) {
     };
 
     $.ajax({
-        url: '/Home/UpdateOnlineStatus',
+        url: '/Repository/UpdateOnlineStatus',
         type: 'PUT',
         contentType: 'application/json',
         data: JSON.stringify(payload),
@@ -3478,7 +3478,7 @@ function RejectCoffeeOrder(orderId) {
         const order = ordersData[orderIndex];
 
         $.ajax({
-            url: "/Home/RejectCoffeeOrder",
+            url: "/Repository/RejectCoffeeOrder",
             type: "POST",
             contentType: "application/json; charset=utf-8",
             data: JSON.stringify(orderId),
@@ -3609,7 +3609,7 @@ function getOrdersFromRestaurant() {
 
 
     $.ajax({
-        url: "/home/GetOrderOnline",
+        url: "/Repository/GetOrderOnline",
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -3675,7 +3675,7 @@ function getOrdersFromRestaurant() {
 function getOrdersFromCoffee() {
 
     $.ajax({
-        url: '/Home/GetCoffeeOrders',
+        url: '/Repository/GetCoffeeOrders',
         method: 'GET',
         contentType: 'application/json',
 
@@ -3797,7 +3797,7 @@ function updateCoffeeOrderStatus(orderId, newStatus) {
 
     $.ajax({
 
-        url: '/Home/UpdateCoffeeOrderStatus',
+        url: '/Repository/UpdateCoffeeOrderStatus',
         method: 'POST',
         contentType: 'application/json; charset=utf-8',
         data: JSON.stringify(payload),
@@ -4208,7 +4208,7 @@ function printThermalBill(order) {
         }
 
         $.ajax({
-            url: '/Home/PlaceOrder',
+            url: '/Repository/PlaceOrder',
             type: 'POST',
             contentType: 'application/json; charset=utf-8',
             data: JSON.stringify(payload),

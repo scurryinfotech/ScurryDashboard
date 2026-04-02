@@ -544,7 +544,7 @@ namespace OrderService.Repository.Service
                     SELECT mc.category_id, mc.category_name, mc.description,
                            mc.CreatedDate, mc.CreatedBy, mc.ModifiedDate, mc.ModifiedBy, mc.IsActive
                     FROM   menu_categories mc
-                    INNER JOIN Users u ON u.Id = mc.CreatedBy
+                    LEFT JOIN Users u ON u.Id = mc.CreatedBy
                     WHERE  mc.IsActive = 1 OR (mc.IsActive = 0 AND u.Username = @UserName)");
                 cmd.Parameters.AddWithValue("@UserName", userName);
                 await using var rdr = await cmd.ExecuteReaderAsync();
@@ -575,7 +575,7 @@ namespace OrderService.Repository.Service
                     SELECT ms.subcategory_id, ms.category_id, ms.subcategory_name,
                            ms.description, ms.display_order, ms.IsActive
                     FROM   menu_subcategories ms
-                    INNER JOIN Users u ON u.Id = ms.CreatedBy
+                    LEFT JOIN Users u ON u.Id = ms.CreatedBy
                     WHERE  ms.IsActive = 1 OR (ms.IsActive = 0 AND u.Username = @UserName)");
                 cmd.Parameters.AddWithValue("@UserName", userName);
                 await using var rdr = await cmd.ExecuteReaderAsync();
@@ -605,7 +605,7 @@ namespace OrderService.Repository.Service
                            mi.image_data, mi.price1, mi.price2, mi.count1, mi.count2, mi.title,
                            mi.CreatedDate, mi.CreatedBy, mi.ModifiedDate, mi.ModifiedBy, mi.IsActive
                     FROM   menu_items mi
-                    INNER JOIN Users u ON u.Id = mi.CreatedBy
+                    LEFT JOIN Users u ON u.Id = mi.CreatedBy
                     WHERE  mi.IsActive = 1 OR (mi.IsActive = 0 AND u.Username = @UserName)");
                 cmd.Parameters.AddWithValue("@UserName", userName);
                 await using var rdr = await cmd.ExecuteReaderAsync();

@@ -671,7 +671,7 @@
                 const $btn = $('#saveTableCountBtn');
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving…');
                 $.ajax({
-                    url: '/Home/SaveTableCount',
+                    url: '/Repository/SaveTableCount',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(value),
@@ -746,7 +746,7 @@
                     IsActive: $('#categoryIsActive').is(':checked')
                 };
                 $.ajax({
-                    url: id ? `/Home/SaveMenuCategory?id=${id}` : '/Home/SaveMenuCategory',
+                    url: id ? `/Repository/SaveMenuCategory?id=${id}` : '/Repository/SaveMenuCategory',
                     method: id ? 'PUT' : 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(payload),
@@ -769,7 +769,7 @@
                     IsActive: $('#subcategoryIsActive').is(':checked')
                 };
                 $.ajax({
-                    url: id ? `/Home/SaveMenuSubcategory?id=${id}` : '/Home/SaveMenuSubcategory',
+                    url: id ? `/Repository/SaveMenuSubcategory?id=${id}` : '/Repository/SaveMenuSubcategory',
                     method: id ? 'PUT' : 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(payload),
@@ -797,7 +797,7 @@
                 const file = $('#itemImage')[0].files[0];
                 if (file) fm.append('image', file);
                 $.ajax({
-                    url: id ? `/Home/SaveMenuItem?id=${id}` : '/Home/SaveMenuItem',
+                    url: id ? `/Repository/SaveMenuItem?id=${id}` : '/Repository/SaveMenuItem',
                     method: id ? 'PUT' : 'POST',
                     data: fm,
                     contentType: false,
@@ -894,7 +894,7 @@
 
         function loadTableCount() {
             $.ajax({
-                url: '/Home/GetTableCount',
+                url: '/Repository/GetTableCount',
                 type: 'GET',
                 success: function (data) {
                     let count = data;
@@ -914,7 +914,7 @@
 
         function loadMenuCategories() {
             $.ajax({
-                url: '/Home/GetMenuCategory',
+                url: '/Repository/GetMenuCategory',
                 type: 'GET',
                 success: function (data) {
                     categoriesData = data || [];
@@ -950,7 +950,7 @@
 
         function loadMenuSubcategories() {
             $.ajax({
-                url: '/Home/GetMenuSubcategory',
+                url: '/Repository/GetMenuSubcategory',
                 type: 'GET',
                 success: function (data) {
                     subcategoriesData = data || [];
@@ -993,7 +993,7 @@
 
         function loadMenuItems() {
             $.ajax({
-                url: '/Home/GetMenuItem',
+                url: '/Repository/GetMenuItem',
                 type: 'GET',
                 success: function (data) {
                     itemsData = data || [];
