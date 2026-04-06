@@ -22,6 +22,43 @@ namespace OrderService.Repository.Service
             Configuration = _configuration;
         }
 
+        public async Task<bool> SetTableCount(string userName, int count)
+        {
+            try
+            {
+                connection();
+
+                using (SqlCommand cmd = new SqlCommand(@"UPDATE UserTableMaster SET TableCount = @Count WHERE UserId = (SELECT Id FROM Users WHERE Username = @UserName)", con))
+                {
+                    cmd.CommandType = CommandType.Text;
+                    cmd.Parameters.AddWithValue("@Count", count);
+                    cmd.Parameters.AddWithValue("@UserName", userName ?? (object)DBNull.Value);
+                    int rows = await cmd.ExecuteNonQueryAsync();
+                    if (rows == 0)
+                    {
+                        using (SqlCommand ins = new SqlCommand(@"INSERT INTO UserTableMaster (UserId, TableCount) SELECT Id, @Count FROM Users WHERE Username = @UserName", con))
+                        {
+                            ins.CommandType = CommandType.Text;
+                            ins.Parameters.AddWithValue("@Count", count);
+                            ins.Parameters.AddWithValue("@UserName", userName ?? (object)DBNull.Value);
+                            await ins.ExecuteNonQueryAsync();
+                        }
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SetTableCount Error: " + ex.Message);
+                return false;
+            }
+            finally
+            {
+                if (con.State == ConnectionState.Open)
+                    con.Close();
+            }
+        }
+
         private void connection()
         {
             string constr = this.Configuration.GetConnectionString("ConnStringDb");

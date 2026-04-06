@@ -18,6 +18,39 @@ namespace OrderService.Repository.Service
             _sqlServerCs = cfg.GetConnectionString("ConnStringDb")!;
         }
 
+        public async Task<bool> SetTableCount(string userName, int count)
+        {
+            try
+            {
+                await using var con = await SQLiteHelper.OpenAsync(_sqliteCs);
+                var cmd = SQLiteHelper.Query(con, @"
+                    UPDATE UserTableMaster
+                    SET TableCount = @Count
+                    WHERE UserId = (SELECT Id FROM Users WHERE Username = @UserName LIMIT 1)");
+                cmd.Parameters.AddWithValue("@Count", count);
+                cmd.Parameters.AddWithValue("@UserName", userName);
+                int rows = await cmd.ExecuteNonQueryAsync();
+
+                if (rows == 0)
+                {
+                    // Insert if no existing row
+                    var ins = SQLiteHelper.Query(con, @"
+                        INSERT INTO UserTableMaster (UserId, TableCount)
+                        VALUES ((SELECT Id FROM Users WHERE Username = @UserName LIMIT 1), @Count)");
+                    ins.Parameters.AddWithValue("@UserName", userName);
+                    ins.Parameters.AddWithValue("@Count", count);
+                    await ins.ExecuteNonQueryAsync();
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SetTableCount Error: " + ex.Message);
+                return false;
+            }
+        }
+
         // ════════════════════════════════════════════════════════
         //  MAPPERS
         // ════════════════════════════════════════════════════════
@@ -227,6 +260,8 @@ namespace OrderService.Repository.Service
             }
             return flag;
         }
+
+        // Unified place method used by callers that don't want to choose between table/online
 
         public async Task<bool> placeOnline(OrderModel order)
         {

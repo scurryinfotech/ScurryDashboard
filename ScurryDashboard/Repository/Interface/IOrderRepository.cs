@@ -37,5 +37,6 @@ namespace OrderService.Repository.Interface
         Task<bool> CheckPhoneExists(string phone);
         Task<CustomerAddressDto?> GetCustomerAddressOnline(string userId);
         Task<int> GetFixedDiscountAsync();
+        Task<bool> SetTableCount(string userName, int count);
     }
 }

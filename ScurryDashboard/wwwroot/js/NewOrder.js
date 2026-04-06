@@ -13,12 +13,15 @@
 
 /* ── API Endpoints ── */
 var API = {
-    cats: '/Home/GetMenuCategory',
-    subs: '/Home/GetMenuSubcategory',
-    items: '/Home/GetMenuItem',
-    save: '/Home/SaveTableOrder',
-    tables: '/Home/GetTableCount',
+    cats: '/Repository/GetMenuCategory',
+    subs: '/Repository/GetMenuSubcategory',
+    items: '/Repository/GetMenuItem',
+    save: '/Repository/SaveTableOrder',
+    tables: '/Repository/GetTableCount',
 };
+
+// Use server-provided user identifier when available to ensure orders originate from dashboard
+const APP_USER = (window && window.__APP_USER__) ? window.__APP_USER__ : 2;
 
 var TAX = 0.05;
 
@@ -365,7 +368,7 @@ function detailAdd() {
     closeDetail();
     renderGrid();
     renderCart();
-    toast(_dItem.name + ' added!', 'success');
+    //toast(_dItem.name + ' added!', 'success');
 }
 
 function closeDetail() {
@@ -636,19 +639,20 @@ function postOrder(s) {
                 : s.orderType;
 
     var payload = {
-        selectedTable: s.tableNo || null,       
-        userId: 2,                        
-        customerName: s.customerName || '',     
-        userPhone: s.phone || '',            
-        Address: s.address || '',
-        OrderType: orderType || '',
-        specialInstruction: notes || '',
-        orderItems: $.map(s.lines, function (l) {    
+        selectedTable: s.tableNo || null,
+        // fixed root user for dashboard-originated orders
+        userName: APP_USER,
+        customerName: s.customerName || '',
+        userPhone: s.phone || '',
+        Address: s.address || null,
+        OrderType: orderType || 'Offline',
+        specialInstruction: notes || 'No Instructions',
+        orderItems: $.map(s.lines, function (l) {
             return {
-                item_id: l.itemId,
-                full: l.fullPortion,          
-                half: l.halfPortion,          
-                Price: l.price
+                Price: l.price,
+                item_id: parseInt(l.itemId, 10),
+                full: l.fullPortion || 0,
+                half: l.halfPortion || 0
             };
         })
     };

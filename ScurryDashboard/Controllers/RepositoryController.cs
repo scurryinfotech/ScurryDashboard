@@ -25,6 +25,33 @@ namespace ScurryDashboard.Controllers
             _userName = configuration["Api:user"];
         }
 
+        // Place an online order (used for delivery/pickup flows)
+        [HttpPost]
+        public async Task<IActionResult> PlaceOnline([FromBody] ScurryDashboard.Models.OrderModel order)
+        {
+            if (order == null) return BadRequest("Order required");
+            try
+            {
+                var mapped = MapOrderModel(order);
+
+                // enforce fixed root user for dashboard-originated orders
+                int rootId = 2;
+                try { rootId = Convert.ToInt32(_configuration["Repository:RootUserId"] ?? "2"); } catch { rootId = 2; }
+                mapped.userName = rootId;
+
+                // keep any provided userId (for online orders) if present
+                // call repository placeOnline which inserts UserId when provided
+                var success = await _orderRepository.placeOnline(mapped);
+                if (success) return Ok("Saved");
+                return StatusCode(500, "Failed to save online order");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving online order via repository");
+                return StatusCode(500, "Error saving online order");
+            }
+        }
+
         // ----- Mapping helpers between ScurryDashboard.Models and OrderService.Model -----
         private OrderService.Model.OrderModel MapOrderModel(ScurryDashboard.Models.OrderModel src)
         {
@@ -90,6 +117,16 @@ namespace ScurryDashboard.Controllers
             try
             {
                 var mapped = MapOrderModel(order);
+
+                // enforce fixed root user for dashboard-originated orders
+                // config key: Repository:RootUserId (optional) — falls back to 2
+                int rootId = 2;
+                try { rootId = Convert.ToInt32(_configuration["Repository:RootUserId"] ?? "2"); } catch { rootId = 2; }
+                mapped.userName = rootId;
+
+                // ensure selected table from UI is used
+                mapped.selectedTable = order.selectedTable;
+
                 var success = await _orderRepository.AddOrder(mapped);
                 if (success) return Ok("Saved");
                 return StatusCode(500, "Failed to save order");
@@ -598,9 +635,21 @@ namespace ScurryDashboard.Controllers
             if (count <= 0) return BadRequest(new { success = false, message = "Table count must be greater than 0" });
             try
             {
-                var apiResult = await _orderRepository.InsertOrderSummary(new OrderService.Model.OrderSummaryModel());
-                // This is placeholder; actual repository method for SetTableCount is not present
-                return Ok(new { success = true, message = "Not implemented: SetTableCount via repository" });
+                // Use OrderSummary insert to persist table count (stored in TotalAmount field)
+                var summary = new OrderService.Model.OrderSummaryModel
+                {
+                    OrderId = string.Empty,
+                    CustomerName = "",
+                    Phone = "",
+                    TotalAmount = count,
+                    DiscountAmount = 0,
+                    FinalAmount = count,
+                    PaymentMode = string.Empty
+                };
+
+                var saved = await _orderRepository.InsertOrderSummary(summary);
+                if (saved) return Ok(new { success = true, message = "Table count saved" });
+                return StatusCode(500, new { success = false, message = "Failed to save table count" });
             }
             catch (Exception ex)
             {
