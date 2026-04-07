@@ -499,11 +499,14 @@ namespace OrderService.Repository.Service
             try
             {
                 await using var con = await SQLiteHelper.OpenAsync(_sqliteCs);
+                await using var tx = await con.BeginTransactionAsync() as SqliteTransaction;
+
                 var cmd = SQLiteHelper.Query(con, @"
                     INSERT INTO OrderSummary
                         (OrderId, CustomerName, Phone, TotalAmount, DiscountAmount, FinalAmount, PaymentMode)
                     VALUES
                         (@OrderId, @CustomerName, @Phone, @TotalAmount, @DiscountAmount, @FinalAmount, @PaymentMode)");
+                cmd.Transaction = tx;
                 cmd.Parameters.AddWithValue("@OrderId", summary.OrderId);
                 cmd.Parameters.AddWithValue("@CustomerName", (object?)summary.CustomerName ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Phone", (object?)summary.Phone ?? DBNull.Value);
@@ -511,7 +514,38 @@ namespace OrderService.Repository.Service
                 cmd.Parameters.AddWithValue("@DiscountAmount", summary.DiscountAmount);
                 cmd.Parameters.AddWithValue("@FinalAmount", summary.FinalAmount);
                 cmd.Parameters.AddWithValue("@PaymentMode", (object?)summary.PaymentMode ?? DBNull.Value);
-                return await cmd.ExecuteNonQueryAsync() > 0;
+
+                int inserted = await cmd.ExecuteNonQueryAsync();
+
+                if (inserted > 0)
+                {
+                    // Mark all orders with this OrderId as completed (status 3) and inactive
+                    var upd = SQLiteHelper.Query(con, @"
+                        UPDATE Orders SET
+                            OrderStatus = 3,
+                            IsActive = 0,
+                            ModifiedDate = datetime('now')
+                        WHERE OrderId = @OrderId");
+                    upd.Transaction = tx;
+                    upd.Parameters.AddWithValue("@OrderId", summary.OrderId);
+                    await upd.ExecuteNonQueryAsync();
+
+                    // Set CompletedDate on the summary record (if schema supports it)
+                    try
+                    {
+                        var updSum = SQLiteHelper.Query(con, @"UPDATE OrderSummary SET CompletedDate = datetime('now') WHERE OrderId = @OrderId");
+                        updSum.Transaction = tx;
+                        updSum.Parameters.AddWithValue("@OrderId", summary.OrderId);
+                        await updSum.ExecuteNonQueryAsync();
+                    }
+                    catch { /* ignore if column missing */ }
+
+                    await tx!.CommitAsync();
+                    return true;
+                }
+
+                await tx!.RollbackAsync();
+                return false;
             }
             catch (Exception ex) { Console.WriteLine("InsertOrderSummary Error: " + ex.Message); return false; }
         }
