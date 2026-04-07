@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using OrderService.Repository.Interface;
 using ScurryDashboard.Models;
 using System.Text.Json;
-using System.Diagnostics;
-using System.Linq;
 
 namespace ScurryDashboard.Controllers
 {
@@ -46,7 +43,7 @@ namespace ScurryDashboard.Controllers
                 return StatusCode(500, "Failed to save online order");
             }
             catch (Exception ex)
-            {
+            { 
                 _logger.LogError(ex, "Error saving online order via repository");
                 return StatusCode(500, "Error saving online order");
             }

@@ -677,7 +677,7 @@ function postOrder(s) {
     };
 
     $.ajax({
-        url: API.save,   // '/Repository/SaveTableOrder'
+        url: API.save, 
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(payload),

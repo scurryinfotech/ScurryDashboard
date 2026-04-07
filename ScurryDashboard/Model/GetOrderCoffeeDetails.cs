@@ -7,7 +7,7 @@
         public string CustomerName { get; set; }
         public string CustomerPhone { get; set; }
         public DateTime OrderDate { get; set; }
-        public string OrderStatus { get; set; }
+        public string OrderStatus { get; set; } 
 
         // Coffee details
         public string CoffeeName { get; set; }

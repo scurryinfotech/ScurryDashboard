@@ -187,10 +187,6 @@ namespace OrderService.Repository.Service
             return list;
         }
 
-        // ════════════════════════════════════════════════════════
-        //  ORDERS — INSERT
-        // ════════════════════════════════════════════════════════
-
         public async Task<bool> AddOrder(OrderModel order)
         {
             bool flag = false;
@@ -226,7 +222,7 @@ namespace OrderService.Repository.Service
                              TableNo, CreatedBy, customerName, phone, OrderType, Address,
                              specialInstructions, IsActive)
                         VALUES
-                            (@OrderId, 1, @item_id, @FullPortion, @HalfPortion, @Price,
+                            (@OrderId, 2, @item_id, @FullPortion, @HalfPortion, @Price,
                              @TableNo, @CreatedBy, @CustomerName, @phone, @OrderType, @Address,
                              @specialInstruction, 1)");
                     ins.Transaction = tx;
