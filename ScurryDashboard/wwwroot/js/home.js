@@ -51,7 +51,6 @@ $(document).ready(function () {
         loadTableCount();
         loadTableOrders(false);
         getOrdersFromRestaurant();
-        loadOrderHistory(true);
         //setupInfiniteScroll();
         getOrdersFromCoffee();
         
@@ -60,6 +59,31 @@ $(document).ready(function () {
 
 
     //initializeConnectionUI();
+
+    // Hide New Order button until a table is selected (support several possible selectors)
+    try {
+        $('[id=newOrderBtn], .new-order-btn, #openNewOrder').hide();
+    } catch (e) { }
+
+    // inject simple CSS for selected table highlight
+    try {
+        $('<style>.selected-table{box-shadow:0 0 0 3px rgba(255,165,0,0.35) !important; border:2px solid #ffb84d !important;}</style>').appendTo('head');
+    } catch (e) { }
+
+    // New Order button: open modal for currently selected table
+    $(document).on('click', '#newOrderBtn, .new-order-btn, #openNewOrder', function () {
+        if (window.currentSelectedTableNo) {
+            // If NewOrder page exposes an opener function, call it; otherwise navigate with table query
+            if (typeof window.openNewOrderModal === 'function') {
+                window.openNewOrderModal(window.currentSelectedTableNo);
+            } else {
+                window.location.href = '/Repository/NewOrder?table=' + encodeURIComponent(window.currentSelectedTableNo);
+            }
+        } else {
+            // friendly hint
+            alert('Please select a table before creating a new order');
+        }
+    });
 
     //// Zomato button click handler
     //$('#zomatoBtn').on('click', function () {
@@ -1241,10 +1265,15 @@ function bindDynamicTable() {
             }
         }
 
-        tblhtml += `<div class="card text-white ${cardClass} m-3 card-click-animation" data-toggle="modal" data-target="#divInProgressModal">`;
-        tblhtml += `<div class="card-body"><center><h5 class="card-title">Table ${tbl}</h5>`;
+        tblhtml += `<div class="card text-white ${cardClass} m-3 card-click-animation" data-toggle="modal" data-target="#divInProgressModal" data-table="${tbl}">`;
+        tblhtml += `<div class="card-body table-card-body"><center><h5 class="card-title">Table ${tbl}</h5>`;
         tblhtml += `<div><strong>Total: ₹${totalPrice}</strong></div></center></div>`;
         tblhtml += `<div class="card-footer"><center><small>${statusText}</small></center></div>`;
+
+        // highlight selected table
+        try {
+            // nothing here, selection handled after DOM insert
+        } catch (e) { }
         tblhtml += `</div>`;
 
         if (i % 3 == 2) tblhtml += "</div></div>";
@@ -1255,8 +1284,27 @@ function bindDynamicTable() {
     }
 
     $("#divTable").html(tblhtml);
-
     renderOrderHistory();
+
+    // After rendering, attach click handler to select a table
+    $(document).off('click', '.card[data-table]').on('click', '.card[data-table]', function (e) {
+        var t = $(this).attr('data-table');
+        if (!t) return;
+        window.currentSelectedTableNo = parseInt(t);
+
+        // Highlight selection
+        $('.card[data-table]').removeClass('selected-table');
+        $(this).addClass('selected-table');
+
+        // show new order button
+        $('[id=newOrderBtn], .new-order-btn, #openNewOrder').show();
+
+        // open modal or update details
+        $('.modal-title').text('Table ' + t);
+        $('#divInProgressModal').modal('show');
+        updateOrderDetails('Table ' + t);
+        updateConfirmOrderBtn(parseInt(t));
+    });
 }
 
 // ========== History ==========

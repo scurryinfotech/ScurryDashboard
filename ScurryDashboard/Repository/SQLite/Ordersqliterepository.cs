@@ -145,7 +145,9 @@ namespace OrderService.Repository.Service
                     LEFT  JOIN OrderStatusMaster osm ON osm.Id     = o.OrderStatus
                     INNER JOIN Users             u   ON u.Id       = o.CreatedBy
                     WHERE  u.Username = @UserName
-                      AND (o.IsActive = 1 OR o.OrderStatus IN (1, 3))
+                      -- Only return active / in-progress table orders for the dashboard home view.
+                      -- Exclude completed (3) and cancelled statuses so history is shown separately.
+                      AND (o.IsActive = 1 OR o.OrderStatus IN (1, 2))
                     ORDER  BY o.CreatedDate DESC, o.OrderId DESC
                     LIMIT  400");
                 cmd.Parameters.AddWithValue("@UserName", userName);

@@ -24,7 +24,8 @@ var _cart = {};   // itemId → { fq, hq, note, name, fp, hp }
 
 var _activeCat = null;
 var _activeSC = null;
-var _otype = 'DineIn';
+// Default to Table so dashboard opens in table mode by default
+var _otype = 'Table';
 var _dmode = 'none', _dpct = 0, _damt = 0;
 var _pm = 'Cash';
 
@@ -115,6 +116,12 @@ $(document).ready(function () {
     /* Load table list separately */
     _loadTables();
 
+    // If opened with ?table= query param, remember it so _loadTables can set selection
+    try {
+        var urlParams = new URLSearchParams(window.location.search);
+        window.__initialTableParam = urlParams.get('table');
+    } catch (e) { window.__initialTableParam = null; }
+
     /* Keyboard close */
     $(document).on('keydown', function (e) {
         if (e.key === 'Escape') {
@@ -172,12 +179,23 @@ function _loadTables() {
             for (var i = 1; i <= cnt; i++) {
                 $sel.append($('<option>').val(i).text('Table ' + i));
             }
+
+            // If initial table specified in query, set it
+            try {
+                if (window.__initialTableParam) {
+                    var tval = parseInt(window.__initialTableParam);
+                    if (!isNaN(tval)) $sel.val(tval);
+                }
+            } catch (e) { }
         },
         error: function () {
             var $sel = $('#noTableSel').empty();
             for (var i = 1; i <= 20; i++) {
                 $sel.append($('<option>').val(i).text('Table ' + i));
             }
+            try {
+                if (window.__initialTableParam) $('#noTableSel').val(parseInt(window.__initialTableParam));
+            } catch (e) { }
         }
     });
 }
@@ -412,14 +430,24 @@ function renderCart() {
             var id = pair[0], e = pair[1];
             var total = (e.fq * e.fp) + (e.hq * (e.hp || e.fp / 2));
 
+            // Show full and half portions separately to avoid confusion
             html += '<div class="no-crow">' +
                 '<div class="no-crow-name">' + e.name +
                 (e.note ? '<div class="no-crow-code" title="' + e.note + '">' + e.note + '</div>' : '') +
                 '</div>' +
                 '<div class="no-crow-qty">' +
-                '<button class="no-cqb" onclick="cartChg(' + id + ',\'fq\',-1)">&#8722;</button>' +
-                '<span class="no-cqv">' + (e.fq + e.hq) + '</span>' +
-                '<button class="no-cqb" onclick="cartAdd(' + id + ')">+</button>' +
+                '<div class="no-portion-row">' +
+                    '<span class="no-portion-label">F:</span>' +
+                    '<button class="no-cqb" onclick="cartChg(' + id + ',\'fq\',-1)">&#8722;</button>' +
+                    '<span class="no-iqv">' + e.fq + '</span>' +
+                    '<button class="no-cqb" onclick="cartAdd(' + id + ',\'fq\')">+</button>' +
+                '</div>' +
+                '<div class="no-portion-row">' +
+                    '<span class="no-portion-label">H:</span>' +
+                    '<button class="no-cqb" onclick="cartChg(' + id + ',\'hq\',-1)">&#8722;</button>' +
+                    '<span class="no-iqv">' + e.hq + '</span>' +
+                    '<button class="no-cqb" onclick="cartAdd(' + id + ',\'hq\')">+</button>' +
+                '</div>' +
                 '</div>' +
                 '<div class="no-crow-price">&#8377;' + total.toFixed(2) + '</div>' +
                 '<button class="no-cdel" onclick="cartDel(' + id + ')"><i class="fas fa-xmark"></i></button>' +
@@ -450,8 +478,11 @@ function cartChg(id, type, d) {
     renderCart();
 }
 function cartAdd(id) {
+    // support adding either full or half via second arg
+    var portion = 'fq';
+    if (arguments.length > 1 && (arguments[1] === 'hq' || arguments[1] === 'fq')) portion = arguments[1];
     if (!_cart[id]) return;
-    _cart[id].fq++;
+    _cart[id][portion]++;
     renderGrid();
     renderCart();
 }
