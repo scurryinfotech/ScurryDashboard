@@ -1,15 +1,4 @@
-﻿/* ════════════════════════════════════════════════════════════
-   GRILL N SHAKES — NEW ORDER POS
-   wwwroot/js/NewOrder.js
-
-   EXACT API FIELD NAMES (confirmed from live data):
-   ─────────────────────────────────────────────────
-   Categories   : categoryId, categoryName
-   Subcategories: subcategoryId, categoryId, subcategoryName
-   Items        : itemId, subcategoryId, itemName,
-                  price1 (full), price2 (half, 0 = unavailable),
-                  imageSrc (base64 string), isActive
-════════════════════════════════════════════════════════════ */
+﻿
 
 /* ── API Endpoints ── */
 var API = {
@@ -162,17 +151,26 @@ function _loadTables() {
         dataType: 'json',
         success: function (data) {
             var $sel = $('#noTableSel').empty();
-            var arr = $.isArray(data) ? data : [];
-            if (arr.length) {
-                $.each(arr, function (_, t) {
+
+            // Handle plain number response (e.g., 5) from GetTableCount
+            if ($.isArray(data) && data.length) {
+                $.each(data, function (_, t) {
                     var no = t.tableNumber || t.table_number || t.tableNo || t.table_no || t;
                     $sel.append($('<option>').val(no).text('Table ' + no));
                 });
-            } else {
-                var cnt = data.tableCount || data.TableCount || 20;
-                for (var i = 1; i <= cnt; i++) {
-                    $sel.append($('<option>').val(i).text('Table ' + i));
-                }
+                return;
+            }
+
+            var cnt = 0;
+            if (typeof data === 'number') {
+                cnt = data;
+            } else if (data && typeof data === 'object') {
+                cnt = data.count || data.tableCount || data.TableCount || 0;
+            }
+            if (cnt <= 0) cnt = 20; // safe fallback
+
+            for (var i = 1; i <= cnt; i++) {
+                $sel.append($('<option>').val(i).text('Table ' + i));
             }
         },
         error: function () {
@@ -183,7 +181,6 @@ function _loadTables() {
         }
     });
 }
-
 
 function _initSkeletons() {
     var cats = '';
@@ -541,16 +538,17 @@ function selectPM(el) {
     _pm = $(el).data('mode');
 }
 
-/* ════════════════════════════════════════════════════════════
-   SNAPSHOT + VALIDATE
-════════════════════════════════════════════════════════════ */
+
 function snap() {
     var sub = _sub(), disc = 0;
     if (_dmode === 'comp') disc = sub;
     else if (_dmode === 'pct') disc = sub * _dpct / 100;
     else if (_dmode === 'amt') disc = Math.min(_damt, sub);
     var after = sub - disc, tax = after * TAX, grand = Math.round(after + tax);
-    var tno = _otype === 'Table' ? parseInt($('#noTableSel').val()) || '' : '';
+
+    // Only set tableNo when type is 'Table' and a valid table is selected
+    var tno = _otype === 'Table' ? (parseInt($('#noTableSel').val()) || null) : null;
+
     var lines = [];
     $.each(_cart, function (id, e) {
         lines.push({
@@ -558,7 +556,8 @@ function snap() {
             itemName: e.name,
             fullPortion: e.fq,
             halfPortion: e.hq,
-            price: (e.fq * e.fp) + (e.hq * (e.hp || e.fp / 2)),
+            unitFullPrice: e.fp,                        
+            unitHalfPrice: e.hp || Math.round(e.fp / 2), 
             specialNote: e.note || '',
         });
     });
@@ -580,7 +579,16 @@ function snap() {
 
 function validate() {
     $('#noCustName, #noCustPhone').removeClass('err');
-    if (_otype === 'Table') return true;
+
+    if (_otype === 'Table') {
+        var tableVal = parseInt($('#noTableSel').val());
+        if (!tableVal || tableVal <= 0) {
+            toast('Please select a valid table number', 'error');
+            return false;
+        }
+        return true;
+    }
+
     var ok = true;
     if (!$('#noCustName').val().trim()) { $('#noCustName').addClass('err'); ok = false; }
     if (!$('#noCustPhone').val().trim()) { $('#noCustPhone').addClass('err'); ok = false; }
@@ -588,9 +596,7 @@ function validate() {
     return ok;
 }
 
-/* ════════════════════════════════════════════════════════════
-   ACTIONS
-════════════════════════════════════════════════════════════ */
+
 function noKOT(andPrint) {
     if (!Object.keys(_cart).length) return;
     var s = snap();
@@ -625,46 +631,58 @@ function doneBill(mid) {
     toast('Order saved! &#10003;', 'success');
 }
 
-/* ── POST ORDER via jQuery AJAX ── */
-function postOrder(s) {
-    var token = localStorage.getItem('authToken') || '';
 
+function postOrder(s) {
     var notes = $.map(s.lines, function (l) {
         return l.specialNote ? l.itemName + ': ' + l.specialNote : null;
     }).join('; ');
 
+    // Map order type to lowercase DB value
     var orderType = s.orderType === 'DineIn' ? 'dine'
         : s.orderType === 'Delivery' ? 'delivery'
             : s.orderType === 'PickUp' ? 'pickup'
-                : s.orderType;
+                : s.orderType === 'Table' ? 'dine'  
+                    : 'dine';
+
+    var orderItems = [];
+    $.each(s.lines, function (_, l) {
+        if (l.fullPortion > 0) {
+            orderItems.push({
+                item_id: l.itemId,
+                full: l.fullPortion,
+                half: 0,
+                Price: l.unitFullPrice   
+            });
+        }
+        if (l.halfPortion > 0) {
+            orderItems.push({
+                item_id: l.itemId,
+                full: 0,
+                half: l.halfPortion,
+                Price: l.unitHalfPrice  
+            });
+        }
+    });
 
     var payload = {
-        selectedTable: s.tableNo || null,
-        // fixed root user for dashboard-originated orders
+        selectedTable: s.tableNo ? parseInt(s.tableNo) : null,
         userName: APP_USER,
         customerName: s.customerName || '',
         userPhone: s.phone || '',
         Address: s.address || null,
-        OrderType: orderType || 'Offline',
+        OrderType: orderType,
+        paymentMode: s.payMode || 'Cash',
         specialInstruction: notes || 'No Instructions',
-        orderItems: $.map(s.lines, function (l) {
-            return {
-                Price: l.price,
-                item_id: parseInt(l.itemId, 10),
-                full: l.fullPortion || 0,
-                half: l.halfPortion || 0
-            };
-        })
+        orderItems: orderItems
     };
 
     $.ajax({
-        url: API.save,
+        url: API.save,   // '/Repository/SaveTableOrder'
         type: 'POST',
         contentType: 'application/json',
-        headers: { 'Authorization': 'Bearer ' + token },
         data: JSON.stringify(payload),
         success: function () {
-            console.log('[GNS] Order saved OK');
+            console.log('[GNS] Order saved OK — table:', s.tableNo, 'type:', orderType);
         },
         error: function (xhr, status, err) {
             console.error('[GNS] Post error:', xhr.status, err, xhr.responseText);
@@ -676,9 +694,7 @@ function postOrder(s) {
     });
 }
 
-/* ════════════════════════════════════════════════════════════
-   RECEIPT BUILDERS
-════════════════════════════════════════════════════════════ */
+
 function _orderTypeBadge(otype, tno) {
     if (otype === 'Delivery') return '&#128757; DELIVERY';
     if (otype === 'PickUp') return '&#128717; PICK UP';
@@ -748,9 +764,6 @@ function buildBill(s) {
         '</div><div class="rftr">Thank you! &#127869; Grill N Shakes</div></div>';
 }
 
-/* ════════════════════════════════════════════════════════════
-   PRINT
-════════════════════════════════════════════════════════════ */
 function printZone(zoneId) {
     var html = $('#' + zoneId).html();
     var win = window.open('', '', 'width=420,height=680');
@@ -774,9 +787,6 @@ function printZone(zoneId) {
     setTimeout(function () { win.print(); win.close(); }, 400);
 }
 
-/* ════════════════════════════════════════════════════════════
-   TOAST
-════════════════════════════════════════════════════════════ */
 function toast(msg, type) {
     var colors = { success: '#27ae60', error: '#c0392b', info: '#2980b9' };
     var $t = $('#noToast');

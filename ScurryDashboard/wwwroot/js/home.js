@@ -966,6 +966,8 @@ function loadTableOrders() {
         url: "/Repository/GetOrder",
         type: "GET",
         success: function (data) {
+
+            console.log(data);
             window.liveOrdersData = data || [];
             filterCompletedOrdersToHistory();
 
@@ -4184,6 +4186,65 @@ function printThermalBill(order) {
         const entries = Object.values(_cart).filter(e => e.full > 0 || e.half > 0);
         if (entries.length === 0) return;
 
+        // Split each item into full-portion row and half-portion row separately
+        // so each DB row has a single unit price. home.js card = (full + half) * price.
+        const orderItems = [];
+        entries.forEach(function (entry) {
+            const itemId = Number(entry.item.id || entry.item.itemId || entry.item.Id);
+            const fullUnitPrice = Number(entry.fullPrice || entry.item.price || entry.item.Price || 0);
+            const halfUnitPrice = Number(entry.halfPrice || entry.item.price2 || Math.round(fullUnitPrice / 2) || 0);
+
+            if (entry.full > 0) {
+                orderItems.push({ item_id: itemId, full: entry.full, half: 0, Price: fullUnitPrice });
+            }
+            if (entry.half > 0) {
+                orderItems.push({ item_id: itemId, full: 0, half: entry.half, Price: halfUnitPrice });
+            }
+        });
+
+        const payload = {
+            selectedTable: parseInt(_tableNo),   
+            orderItems: orderItems,
+            customerName: document.getElementById('nomCustName').value.trim() || 'Walk-in',
+            userPhone: document.getElementById('nomCustPhone').value.trim() || '',
+            specialInstruction: document.getElementById('nomSpecialNote').value.trim() || 'No Instructions',
+            OrderType: 'dine',               // lowercase 'dine' matches GetOrder filter
+            paymentMode: 'Cash'
+        };
+
+        const btn = document.getElementById('nomPlaceBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="nom-spinner" style="width:18px;height:18px;border-width:2px;border-color:rgba(255,255,255,.3);border-top-color:#fff"></div> Placing…';
+        }
+
+        $.ajax({
+            url: '/Repository/SaveTableOrder',   // ← FIXED: was '/Repository/PlaceOrder' (404)
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            data: JSON.stringify(payload),
+            success: function () {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                }
+                showSuccessMessage('Order placed for Table ' + _tableNo + '!');
+                closeNewOrderModal();
+                if (typeof loadTableOrders === 'function') loadTableOrders();
+                if (typeof loadTableCount === 'function') loadTableCount();
+            },
+            error: function (xhr) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                }
+                alert('Failed to place order: ' + (xhr.responseText || 'Server error'));
+            }
+        });
+    }; window.placeNewOrder = function () {
+        const entries = Object.values(_cart).filter(e => e.full > 0 || e.half > 0);
+        if (entries.length === 0) return;
+
         const orderItems = entries.map(entry => ({
             full: entry.full,
             half: entry.half,
@@ -4208,7 +4269,7 @@ function printThermalBill(order) {
         }
 
         $.ajax({
-            url: '/Repository/PlaceOrder',
+            url: '/Repository/SaveTableOrder',
             type: 'POST',
             contentType: 'application/json; charset=utf-8',
             data: JSON.stringify(payload),

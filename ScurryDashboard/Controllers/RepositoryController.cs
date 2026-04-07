@@ -93,15 +93,45 @@ namespace ScurryDashboard.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetOrder()
+        public async Task<IActionResult> GetOrder(string? userName = null)
         {
             try
             {
-                var orders = await _orderRepository.GetOrder(_userName);
-                var offlineOrders = orders
-                    ?.Where(o => o.OrderType != null && o.OrderType.Equals("Offline", StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-                return Json(offlineOrders);
+                // If the caller didn't supply a userName (the JS calls /Repository/GetOrder without query)
+                // fall back to configured API user. MVC will bind `userName` to null when not provided.
+                var effectiveUser = !string.IsNullOrWhiteSpace(userName) ? userName : _userName;
+                var orders = await _orderRepository.GetOrder(effectiveUser);
+             
+                var tableOrderTypes = new[] { "offline", "dine", "table", "walk-in", "walkin" };
+                var offlineOrders = orders?.Where(o => o != null && (
+                        (o.TableNo > 0) ||
+                        string.IsNullOrEmpty(o.OrderType) ||
+                        tableOrderTypes.Contains((o.OrderType ?? string.Empty).ToLowerInvariant())
+                    )).ToList() ?? new List<OrderService.Model.OrderListModel>();
+
+                // Project to a lightweight camel-cased shape expected by the frontend (home.js)
+                var payload = offlineOrders.Select(o => new 
+                {
+                    id = o.Id,
+                    orderId = o.OrderId,
+                    orderStatusId = o.OrderStatusId,
+                    orderStatus = o.OrderStatus,
+                    itemName = o.ItemName,
+                    halfPortion = o.HalfPortion,
+                    fullPortion = o.FullPortion,
+                    tableNo = o.TableNo,
+                    price = o.Price,
+                    customerName = o.customerName,
+                    phone = o.phone,
+                    date = o.Date,
+                    specialInstructions = o.specialInstructions,
+                    isActive = o.IsActive,
+                    paymentMode = o.paymentMode,
+                    address = o.Address,
+                    orderType = o.OrderType,
+                }).ToList();
+
+                return Json(payload);
             }
             catch (Exception ex)
             {
