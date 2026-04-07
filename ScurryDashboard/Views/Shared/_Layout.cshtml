@@ -69,6 +69,11 @@
                 <i class="fas fa-utensils"></i><span>Manage Menu</span>
             </a>
 
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "History" && ViewContext.RouteData.Values["controller"]?.ToString() == "Repository" ? "active" : "")"
+                   asp-controller="Repository" asp-action="History">
+                <i class="fas fa-history"></i><span>Order History</span>
+            </a>
+
             <div class="gns-sidebar__section-label">Quick Actions</div>
 
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "TableManager" ? "active" : "")"

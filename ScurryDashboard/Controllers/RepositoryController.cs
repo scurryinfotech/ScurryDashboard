@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OrderService.Repository.Interface;
 using ScurryDashboard.Models;
+using OrderService.Model;
 using System.Text.Json;
 
 namespace ScurryDashboard.Controllers
@@ -324,7 +325,22 @@ namespace ScurryDashboard.Controllers
             try
             {
                 var orders = await _orderRepository.GetOrderHistory(_userName);
-                return Json(orders ?? new List<OrderService.Model.OrderHistoryModel>());
+                // Normalize to a simple shape: createdAt (ISO) and amount (number) per summary
+                var source = orders ?? new List<OrderService.Model.OrderHistoryModel>();
+                var payload = source.Select(o => new {
+                    orderId = o.OrderId,
+                    customerName = o.CustomerName,
+                    phone = o.Phone,
+                    tableNo = o.TableNo,
+                    itemName = o.ItemName,
+                    paymentMode = o.PaymentMode,
+                    // prefer FinalAmount, then TotalAmount
+                    amount = (double)(o.FinalAmount != 0 ? o.FinalAmount : o.TotalAmount != 0 ? o.TotalAmount : o.Price),
+                    createdAt = (o.Date == DateTime.MinValue) ? null : o.Date.ToString("o")
+                })
+                .ToList();
+
+                return Json(payload);
             }
             catch (Exception ex)
             {
@@ -358,6 +374,13 @@ namespace ScurryDashboard.Controllers
         public IActionResult NewOrder()
         {
             return View("NewOrder");
+        }
+
+        [HttpGet]
+        public IActionResult History()
+        {
+            // Returns a dedicated History view that will call GetOrderHistory API
+            return View("History");
         }
 
         [HttpGet]

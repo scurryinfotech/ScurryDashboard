@@ -452,18 +452,24 @@ namespace OrderService.Repository.Service
             try
             {
                 await using var con = await SQLiteHelper.OpenAsync(_sqliteCs);
+                // Use OrderSummary as the primary source so we filter and compute revenue by the summary
+                // date (CompletedDate or CreatedDate) instead of per-order item rows. This returns one
+                // row per OrderSummary which makes day-wise filtering accurate.
                 var cmd = SQLiteHelper.Query(con, @"
-                    SELECT o.OrderId, o.customerName, o.phone, o.TableNo,
-                           mi.item_name, o.FullPortion, o.HalfPortion, o.Price,
-                           o.specialInstructions, o.payment_mode,
+                    SELECT DISTINCT
+                           os.OrderId,
+                           os.CustomerName,
+                           os.Phone,
+                           (SELECT o2.TableNo FROM Orders o2 WHERE o2.OrderId = os.OrderId LIMIT 1) AS TableNo,
+                           (SELECT mi.item_name FROM menu_items mi JOIN Orders o3 ON o3.item_id = mi.item_id WHERE o3.OrderId = os.OrderId LIMIT 1) AS ItemName,
                            os.TotalAmount, os.DiscountAmount, os.FinalAmount,
-                           o.CreatedDate
-                    FROM   Orders o
-                    LEFT  JOIN OrderSummary os ON os.OrderId = o.OrderId
-                    LEFT  JOIN menu_items   mi ON mi.item_id = o.item_id
-                    INNER JOIN Users         u ON u.Id       = o.CreatedBy
-                    WHERE  u.Username = @UserName AND o.IsActive = 0
-                    ORDER  BY o.CreatedDate DESC, o.OrderId DESC");
+                           COALESCE(os.CompletedDate, os.CreatedDate) AS SummaryDate,
+                           (SELECT o4.payment_mode FROM Orders o4 WHERE o4.OrderId = os.OrderId LIMIT 1) AS PaymentMode
+                    FROM   OrderSummary os
+                    INNER JOIN Orders o ON o.OrderId = os.OrderId
+                    INNER JOIN Users  u ON u.Id = o.CreatedBy
+                    WHERE  u.Username = @UserName
+                    ORDER  BY SummaryDate DESC, os.OrderId DESC");
                 cmd.Parameters.AddWithValue("@UserName", userName);
                 await using var rdr = await cmd.ExecuteReaderAsync();
                 while (await rdr.ReadAsync())
@@ -474,15 +480,11 @@ namespace OrderService.Repository.Service
                         Phone = rdr.IsDBNull(2) ? "" : rdr.GetString(2),
                         TableNo = rdr.IsDBNull(3) ? 0 : rdr.GetInt32(3),
                         ItemName = rdr.IsDBNull(4) ? "" : rdr.GetString(4),
-                        FullPortion = rdr.IsDBNull(5) ? 0 : rdr.GetInt32(5),
-                        HalfPortion = rdr.IsDBNull(6) ? 0 : rdr.GetInt32(6),
-                        Price = rdr.IsDBNull(7) ? 0 : rdr.GetDecimal(7),
-                        SpecialInstruction = rdr.IsDBNull(8) ? "" : rdr.GetString(8),
+                        TotalAmount = rdr.IsDBNull(5) ? 0 : rdr.GetDecimal(5),
+                        DiscountAmount = rdr.IsDBNull(6) ? 0 : rdr.GetDecimal(6),
+                        FinalAmount = rdr.IsDBNull(7) ? 0 : rdr.GetDecimal(7),
+                        Date = rdr.IsDBNull(8) ? DateTime.MinValue : DateTime.Parse(rdr.GetString(8)),
                         PaymentMode = rdr.IsDBNull(9) ? "" : rdr.GetString(9),
-                        TotalAmount = rdr.IsDBNull(10) ? 0 : rdr.GetDecimal(10),
-                        DiscountAmount = rdr.IsDBNull(11) ? 0 : rdr.GetDecimal(11),
-                        FinalAmount = rdr.IsDBNull(12) ? 0 : rdr.GetDecimal(12),
-                        Date = rdr.IsDBNull(13) ? DateTime.MinValue : DateTime.Parse(rdr.GetString(13)),
                     });
             }
             catch (Exception ex) { Console.WriteLine("GetOrderHistory Error: " + ex.Message); }

@@ -318,18 +318,32 @@ function calculateRevenue(orders) {
         return;
     }
 
-    let grouped = {};
+    // Normalize to one summary per orderId (use `amount` field returned by API)
+    const unique = {};
     orders.forEach(o => {
-        if (!grouped[o.orderId]) {
-            grouped[o.orderId] = Number(o.finalAmount) || 0;
+        const id = o.orderId ?? o.order_id ?? o.id ?? (o.OrderId ?? null);
+        const amt = Number(o.amount ?? o.Amount ?? o.finalAmount ?? o.FinalAmount ?? o.TotalAmount ?? o.total ?? 0) || 0;
+        if (!id) {
+            // fallback to createdAt-based unique key
+            const key = String(o.createdAt ?? o.Date ?? o.date ?? new Date().toISOString());
+            unique[`__${key}_${Math.random().toString(36).slice(2,7)}`] = { amount: amt, createdAt: o.createdAt ?? o.Date ?? o.date };
+        } else if (!unique[id]) {
+            unique[id] = { amount: amt, createdAt: o.createdAt ?? o.Date ?? o.date };
         }
     });
 
-    // Total revenue = sum of unique finalAmount values
-    const totalRevenue = Object.values(grouped).reduce((a, b) => a + b, 0);
+    // Group by local date (ignore time) to get day-wise revenue
+    const daily = {};
+    Object.values(unique).forEach(u => {
+        const parsed = Date.parse(u.createdAt);
+        if (isNaN(parsed)) return;
+        const d = new Date(parsed);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        daily[key] = (daily[key] || 0) + Number(u.amount || 0);
+    });
 
-    // Unique order count
-    const orderCount = Object.keys(grouped).length;
+    const totalRevenue = Object.values(daily).reduce((a, b) => a + b, 0);
+    const orderCount = Object.keys(unique).length;
 
     $('#totalRevenue').text(`₹${totalRevenue.toFixed(2)}`);
     $('#orderCount').text(`${orderCount} Orders`);
@@ -362,24 +376,25 @@ function applyDateFilter() {
         return;
     }
 
-    const startDate = new Date(start);
-    startDate.setHours(0, 0, 0, 0);
+    // Build an inclusive start (>= startOfDay) and exclusive end (< nextDay) range
+    const startOfDay = Date.parse(start + 'T00:00:00'); // local midnight
+    const nextOfEndDay = Date.parse(end + 'T00:00:00') + 24 * 60 * 60 * 1000; // exclusive
 
-    const endDate = new Date(end);
-    endDate.setHours(23, 59, 59, 999);
-
-    if (startDate > endDate) {
+    if (isNaN(startOfDay) || isNaN(nextOfEndDay) || startOfDay >= nextOfEndDay) {
         alert("Start date cannot be after end date");
         return;
     }
 
-    // Filter the data
+    // Filter the data strictly using createdAt (OrderSummary) when available, falling back to tolerant fields
     filteredOrdersData = allOrdersData.filter(order => {
-        const orderDate = new Date(order.date);
-        return orderDate >= startDate && orderDate <= endDate;
+        const dval = order.createdAt ?? order.createdDate ?? order.CreatedDate ?? order.Date ?? order.date ?? order.completedAt ?? order.CompletedDate;
+        if (!dval) return false;
+        const t = Date.parse(dval);
+        if (isNaN(t)) return false;
+        return t >= startOfDay && t < nextOfEndDay;
     });
 
-    // Update revenue display
+    // Update revenue display (use filtered data)
     updateRevenueDateRange(start, end);
     calculateRevenue(filteredOrdersData);
 
@@ -465,7 +480,10 @@ function loadOrderHistory(isInitial = false) {
                 const endDate = new Date(end);
                 endDate.setHours(23, 59, 59, 999);
                 filteredOrdersData = allOrdersData.filter(order => {
-                    const orderDate = new Date(order.date);
+                    const dval = order.date ?? order.Date ?? order.SummaryDate ?? order.completedAt ?? order.CompletedDate ?? order.createdDate ?? order.CreatedDate;
+                    if (!dval) return false;
+                    const orderDate = new Date(dval);
+                    if (isNaN(orderDate)) return false;
                     return orderDate >= startDate && orderDate <= endDate;
                 });
             } else {
@@ -477,8 +495,9 @@ function loadOrderHistory(isInitial = false) {
                 updateRevenueDateRange(start, end);
             }
 
-            calculateRevenue(allOrdersData);
-            displayOrdersPage(allOrdersData);
+            // Calculate revenue from filtered (summary) rows
+            calculateRevenue(filteredOrdersData);
+            displayOrdersPage(filteredOrdersData);
 
             isLoading = false;
             $('#loadingSpinner').removeClass('active');
@@ -543,14 +562,16 @@ function displayOrdersPage(dataToDisplay = filteredOrdersData) {
         const orders = groupedOrders[orderId];
         const first = orders[0];
         const totalItems = orders.length;
-        const date = first.date ? new Date(first.date).toLocaleString('en-IN') : '';
+        const created = first.createdAt ?? first.date ?? first.Date ?? first.completedAt ?? '';
+        const date = created ? new Date(created).toLocaleString('en-IN') : '';
+        const amount = Number(first.amount ?? first.finalAmount ?? first.FinalAmount ?? first.TotalAmount ?? first.total ?? 0) || 0;
         return [
             `<strong>${first.orderId}</strong>`,
             first.customerName || 'N/A',
             first.phone || 'N/A',
             first.tableNo ? 'Table ' + first.tableNo : 'N/A',
             `<div style="max-width:200px; white-space:normal;">${first.itemName || 'N/A'}</div>`,
-            `<strong>₹${(Number(first.finalAmount) || 0).toFixed(2)}</strong>`,
+            `<strong>₹${amount.toFixed(2)}</strong>`,
             totalItems,
             first.paymentMode || 'Online',
             date,
@@ -586,7 +607,7 @@ function displayOrdersPage(dataToDisplay = filteredOrdersData) {
                 autoWidth: false,
                 deferRender: true,
                 columnDefs: [{ orderable: false, targets: -1 }, { className: 'dt-control', targets: -1 }],
-                destroy: false,
+                destroy: true, // allow re-init safely
                 initComplete: function () {
                     try { this.columns.adjust(); if (this.responsive) this.responsive.recalc(); } catch (e) { }
                 }

@@ -1,0 +1,65 @@
+@{
+    ViewData["Title"] = "Order History";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/history.css" asp-append-version="true" />
+}
+
+<div class="dashboard-section">
+    <div class="section-title">
+        <span>Order History</span>
+    </div>
+
+    <div class="gns-filter-row">
+        <label for="startDate">Start</label>
+        <input type="date" id="startDate" />
+        <label class="filter-sep">to</label>
+        <input type="date" id="endDate" />
+        <button id="btnFilter" class="btn btn-sm btn-primary">Apply</button>
+        <button id="btnClear" class="btn btn-sm btn-secondary">Clear</button>
+        <div style="margin-left:auto; text-align:right;">
+            <div id="revenueDateRange">Today's Revenue</div>
+            <div><strong id="totalRevenue">₹0.00</strong> <small id="orderCount">0 Orders</small></div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped" id="orderHistoryTable" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Table</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Count</th>
+                    <th>Payment</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Bill modal (reused by home.js handlers) -->
+<div id="bill-modal" class="" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">Bill</h5>
+            <button class="close-btn" onclick="$('#bill-modal').hide();">×</button>
+        </div>
+        <div id="bill-content"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="$('#bill-modal').hide();">Close</button>
+            <button class="btn btn-primary" onclick="printBill();">Print</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/history.js" asp-append-version="true"></script>
+}
