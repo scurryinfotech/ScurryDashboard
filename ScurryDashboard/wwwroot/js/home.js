@@ -1326,6 +1326,16 @@ function bindDynamicTable() {
         updateOrderDetails('Table ' + t);
         updateConfirmOrderBtn(parseInt(t));
     });
+
+    // Ensure New Order button inside modal opens NewOrder page with selected table
+    $(document).off('click', '#openNewOrderForTable').on('click', '#openNewOrderForTable', function () {
+        const t = window.currentSelectedTableNo;
+        if (!t) { alert('No table selected'); return; }
+        // Open NewOrder route with table query and ensure NewOrder uses the table param
+        const url = '/Home/NewOrder?table=' + encodeURIComponent(t);
+        // Open in same window (modal will remain open until new page loads)
+        window.location.href = url;
+    });
 }
 
 // ========== History ==========

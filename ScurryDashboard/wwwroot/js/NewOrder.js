@@ -120,6 +120,18 @@ $(document).ready(function () {
     try {
         var urlParams = new URLSearchParams(window.location.search);
         window.__initialTableParam = urlParams.get('table');
+        // If provided, ensure NewOrder locks the table selection and switches to Table order type
+        if (window.__initialTableParam) {
+            try { $('#noTableSel').val(parseInt(window.__initialTableParam)); } catch (e) { }
+            // Force order type to Table
+            _otype = 'Table';
+            $('.no-type-tab').removeClass('active');
+            $('.no-type-tab[data-ot="Table"]').addClass('active');
+            // Disable manual change of table selection
+            $(document).ready(function () {
+                $('#noTableSel').prop('disabled', true);
+            });
+        }
     } catch (e) { window.__initialTableParam = null; }
 
     /* Keyboard close */
@@ -644,6 +656,14 @@ function noSave(andPrint) {
     $('#noBillModal').addClass('open');
     if (andPrint) setTimeout(function () { printZone('noBillPrint'); }, 300);
     postOrder(s);
+
+    // If opened from Table modal via query param, close and return to table view
+    try {
+        if (window.__initialTableParam) {
+            // After successful post (server response), navigate back to home table service
+            setTimeout(function () { window.location.href = '/Home/Index'; }, 600);
+        }
+    } catch (e) { }
 }
 
 function noPlace() {
@@ -714,6 +734,17 @@ function postOrder(s) {
         data: JSON.stringify(payload),
         success: function () {
             console.log('[GNS] Order saved OK — table:', s.tableNo, 'type:', orderType);
+            // If this order was created for a table via query param, close the NewOrder page and go back
+            try {
+                if (window.__initialTableParam) {
+                    // Give a short delay for user feedback then navigate back to home (table service)
+                    setTimeout(function () { window.location.href = '/Home/Index'; }, 300);
+                } else {
+                    // Otherwise, if running as a modal in same page, refresh table orders
+                    if (typeof loadTableOrders === 'function') loadTableOrders();
+                    if (typeof loadTableCount === 'function') loadTableCount();
+                }
+            } catch (e) { }
         },
         error: function (xhr, status, err) {
             console.error('[GNS] Post error:', xhr.status, err, xhr.responseText);
