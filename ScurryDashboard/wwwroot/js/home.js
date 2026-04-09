@@ -658,8 +658,14 @@ function viewOrderDetailss(orders) {
     }
 
     const firstOrder = orders[0];
+    // tolerant field mapping
+    const orderIdVal = firstOrder.orderId || firstOrder.OrderId || firstOrder.order_id || firstOrder.id || '';
+    const customerVal = firstOrder.customerName || firstOrder.customer || firstOrder.name || '';
+    const phoneVal = firstOrder.phone || firstOrder.customerPhone || firstOrder.phoneNumber || '';
+    const addrVal = firstOrder.address || firstOrder.addr || '';
     const totalAmount = orders.reduce((sum, order) => sum + (Number(order.price) || 0), 0);
-    const date = new Date(firstOrder.date).toLocaleString('en-IN', {
+    const dateValRaw = firstOrder.date || firstOrder.createdDate || firstOrder.createdAt || firstOrder.timestamp || new Date();
+    const date = new Date(dateValRaw).toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
@@ -700,10 +706,10 @@ function viewOrderDetailss(orders) {
 
         <!-- Order Details -->
         <div style="margin-top:6px; font-size:12px;">
-            <div><strong>Order:</strong> #${firstOrder.orderId}</div>
+                <div><strong>Order:</strong> #${orderIdVal}</div>
             <div><strong>Date:</strong> ${date}</div>
-            <div><strong>Name:</strong> ${firstOrder.customerName || 'Walk-in'}</div>
-            <div><strong>Phone:</strong> ${firstOrder.phone || 'N/A'}</div>
+                <div><strong>Name:</strong> ${customerVal || 'Walk-in'}</div>
+                <div><strong>Phone:</strong> ${phoneVal || 'N/A'}</div>
             <div><strong>Table:</strong> ${firstOrder.tableNo || 'N/A'}</div>
             <div><strong>Pay:</strong> ${firstOrder.paymentMode || 'CASH'}</div>
         </div>
@@ -793,28 +799,75 @@ $(document).on('click', '#bill-modal', function (e) {
 });
 function buildBillUI(billData) {
 
-    if (!billData || billData.length === 0) {
+    // Normalize input: support either an array of item rows or an object with items[]
+    if (!billData) {
         alert("No bill found.");
         return;
     }
 
+    let itemsArray = [];
+    let orderRoot = {};
+    if (Array.isArray(billData)) {
+        itemsArray = billData;
+        orderRoot = billData[0] || {};
+    } else if (billData.items && Array.isArray(billData.items)) {
+        itemsArray = billData.items;
+        orderRoot = billData;
+    } else if (typeof billData === 'object') {
+        // single-line record
+        itemsArray = [billData];
+        orderRoot = billData;
+    }
 
-    const firstOrder = billData[0];
+    if (itemsArray.length === 0) {
+        alert('No bill items found.');
+        return;
+    }
 
-    const subtotal = billData.reduce((sum, item) => {
+    // tolerant field mapping
+    const orderIdVal = orderRoot.orderId || orderRoot.OrderId || orderRoot.order_id || orderRoot.id || '';
+    let customerVal = orderRoot.customerName || orderRoot.customer || orderRoot.name || '';
+    let phoneVal = orderRoot.phone || orderRoot.customerPhone || orderRoot.phoneNumber || '';
+    let addrVal = orderRoot.address || orderRoot.addr || '';
+    const dateValRaw = orderRoot.createdDate || orderRoot.createdAt || orderRoot.date || orderRoot.timestamp || new Date();
+
+    const subtotal = itemsArray.reduce((sum, item) => {
         const fullQty = Number(item.fullPortion) || 0;
         const halfQty = Number(item.halfPortion) || 0;
-
-        const fullPrice = Number(item.fullPrice) || Number(item.price) || 0;
-        const halfPrice = Number(item.halfPrice) || (Number(item.price) / 2) || 0;
-
-        return sum + (fullQty * fullPrice) + (halfQty * halfPrice);
+        const qty = (fullQty + halfQty) || Number(item.quantity) || 1;
+        const unitPrice = Number(item.fullPrice) || Number(item.price) || 0;
+        return sum + (qty * unitPrice);
     }, 0);
 
-    const discount = Number(firstOrder.discountAmount) || 0;
+    const discount = Number(orderRoot.discountAmount || orderRoot.discount || 0);
     const finalTotal = subtotal - discount;
 
-    let billHtml = `
+    let itemsHtml = '';
+    itemsArray.forEach((item, i) => {
+        const fullQty = Number(item.fullPortion) || 0;
+        const halfQty = Number(item.halfPortion) || 0;
+        const qtyText = fullQty || halfQty ? `${fullQty}F ${halfQty}H` : (item.quantity || 1);
+        const unitPrice = Number(item.fullPrice) || Number(item.price) || 0;
+        const qty = (fullQty + halfQty) || Number(item.quantity) || 1;
+        const totalItemPrice = qty * unitPrice;
+
+        itemsHtml += `
+            <div style="display:flex; font-size:14px; justify-content:space-between;">
+                <span>${i + 1}. ${item.itemName || item.name || '-'} (${qtyText})</span>
+                <span>₹${totalItemPrice.toFixed(2)}</span>
+            </div>
+            `;
+    });
+
+    const date = new Date(dateValRaw).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const billHtml = `
     <div id="printable-bill" style="
         width:220px;
         font-family:'Courier New', monospace;
@@ -834,36 +887,18 @@ function buildBillUI(billData) {
         </div>
 
         <div style="font-size:14px;">
-            Order ID : <strong>#${firstOrder.orderId}</strong><br/>
-            Date     : ${new Date(firstOrder.createdDate).toLocaleString()}<br/>
-            Name     : ${firstOrder.customerName}<br/>
-            Phone    : ${firstOrder.phone}<br/>
-            Notes: ${firstOrder.specialInstructions}<br/>
+            Order ID : <strong>#${orderIdVal}</strong><br/>
+            Date     : ${date}<br/>
+            Name     : ${customerVal}<br/>
+            Phone    : ${phoneVal}<br/>
+            Notes: ${orderRoot.specialInstructions || orderRoot.notes || ''}<br/>
         </div>
 
         <hr style="border-top:1px dashed #000;">
 
         <strong>Items</strong><br/>
 
-        ${billData.map((item, i) => {
-
-        const fullQty = Number(item.fullPortion) || 0;
-        const halfQty = Number(item.halfPortion) || 0;
-
-
-        const fullPrice = Number(item.fullPrice) || Number(item.price) || 0;
-        const halfPrice = Number(item.halfPrice) || (Number(item.price) / 2) || 0;
-
-
-        const totalItemPrice = (fullQty * fullPrice) + (halfQty * halfPrice);
-
-        return `
-            <div style="display:flex; font-size:14px; justify-content:space-between;">
-                <span>${i + 1}. ${item.itemName} (${fullQty}F ${halfQty}H)</span>
-                <span>₹${totalItemPrice.toFixed(2)}</span>
-            </div>
-            `;
-    }).join('')}
+        ${itemsHtml}
 
         <hr style="border-top:1px dashed #000;">
 
@@ -896,6 +931,41 @@ function buildBillUI(billData) {
     `;
 
     $("#bill-content").html(billHtml);
+
+    // Fallback: if order-level fields are empty, try to extract from items
+    try {
+        if (!customerVal || !phoneVal || !addrVal) {
+            for (const it of itemsArray) {
+                if (!customerVal) customerVal = customerVal || it.customerName || it.customer || it.orderCustomer || '';
+                if (!phoneVal) phoneVal = phoneVal || it.phone || it.customerPhone || '';
+                if (!addrVal) addrVal = addrVal || it.address || it.addr || '';
+                if (customerVal && phoneVal && addrVal) break;
+            }
+        }
+    } catch (e) {
+        console.warn('fallback extraction failed', e);
+    }
+
+    // Prepare global canonical payload for thermal printing
+        try {
+        const thermalItems = itemsArray.map(item => ({ name: item.itemName || item.name || '-', quantity: (Number(item.fullPortion)||0) + (Number(item.halfPortion)||0) || Number(item.quantity)||1, price: Number(item.fullPrice||item.price||0) }));
+        window.currentBillData = {
+            orderId: orderIdVal,
+            customer: customerVal || '',
+            phone: phoneVal || '',
+            address: addrVal || '',
+            timestamp: dateValRaw,
+            items: thermalItems,
+            total: finalTotal,
+            discountAmount: discount
+        };
+        // debug log to help verify payload used for thermal printing
+        console.log('[Bill] prepared currentBillData:', window.currentBillData);
+    } catch (e) {
+        console.warn('prepare currentBillData failed', e);
+        window.currentBillData = null;
+    }
+
     $("#bill-modal").fadeIn(300);
 }
 

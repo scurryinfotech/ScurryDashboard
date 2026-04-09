@@ -128,7 +128,8 @@
         // Try existing global payload first
         const b = window.currentBillData;
         const doPrint = (obj) => {
-            const payload = {
+            // Build payload for direct API call
+            const apiPayload = {
                 OrderId: obj.orderId || '',
                 Name: obj.customer || '',
                 Phone: obj.phone || '',
@@ -142,15 +143,60 @@
             };
 
             if (typeof printThermalBill === 'function') {
-                printThermalBill(payload);
+                // printThermalBill expects a different "order" shape — convert
+                const orderLike = {
+                    orderId: apiPayload.OrderId,
+                    customer: apiPayload.Name,
+                    phone: apiPayload.Phone,
+                    address: apiPayload.Address,
+                    timestamp: apiPayload.OrderTime,
+                    items: (apiPayload.Items || []).map(i => ({ name: i.Name, quantity: i.Quantity, price: i.Price })),
+                    total: apiPayload.Total,
+                    discountAmount: apiPayload.Discount
+                };
+
+                printThermalBill(orderLike);
                 showNotification('Thermal print requested', 'success');
             } else {
-                fetch('/api/Print/PrintBill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                // direct API fallback
+                fetch('/api/Print/PrintBill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(apiPayload) })
                     .then(r => r.json()).then(res => showNotification('Thermal print requested', 'success')).catch(err => showNotification('Thermal print failed', 'error'));
             }
         };
 
         if (b && Array.isArray(b.items) && b.items.length > 0) {
+            // If customer/phone missing, try to refresh server data for that order id
+            if ((!b.customer || b.customer.trim() === '') || (!b.phone || b.phone.trim() === '')) {
+                // attempt to re-fetch full bill details
+                const oid = b.orderId;
+                if (oid) {
+                    fetch(`/Repository/GetBillData?orderId=${encodeURIComponent(oid)}`)
+                        .then(r => r.json())
+                        .then(bill => {
+                            // normalize same as below
+                            let obj;
+                            if (Array.isArray(bill)) {
+                                const first = bill[0] || {};
+                                const items = bill.map(it => ({ name: it.itemName || it.name, quantity: (Number(it.fullPortion)||0) + (Number(it.halfPortion)||0) || Number(it.quantity)||1, price: Number(it.fullPrice||it.price||0) }));
+                                obj = { orderId: first.orderId || first.OrderId || oid, customer: first.customerName || first.customer || '', phone: first.phone || '', address: first.address || '', timestamp: first.createdDate || first.createdAt || first.date || new Date(), items: items, total: items.reduce((s,i)=>s+(i.price*i.quantity),0), discountAmount: Number(first.discountAmount||first.discount||0) };
+                            } else if (bill && bill.items) {
+                                obj = { orderId: bill.orderId || oid, customer: bill.customerName || bill.customer || '', phone: bill.phone || '', address: bill.address || '', timestamp: bill.createdDate || bill.createdAt || bill.date || new Date(), items: bill.items.map(it=>({ name: it.itemName||it.name, quantity: it.quantity||1, price: Number(it.price||0) })), total: Number(bill.total||0), discountAmount: Number(bill.discountAmount||bill.discount||0) };
+                            } else {
+                                const it = bill;
+                                const qty = (Number(it.fullPortion)||0) + (Number(it.halfPortion)||0) || Number(it.quantity)||1;
+                                obj = { orderId: it.orderId||oid, customer: it.customerName||it.customer||'', phone: it.phone||'', address: it.address||'', timestamp: it.createdDate||it.createdAt||it.date||new Date(), items: [{ name: it.itemName||it.name, quantity: qty, price: Number(it.price||0) }], total: Number(it.amount||it.price||0), discountAmount: Number(it.discountAmount||it.discount||0) };
+                            }
+                            window.currentBillData = obj;
+                            doPrint(obj);
+                        })
+                        .catch(err => {
+                            console.warn('Re-fetch for missing customer/phone failed', err);
+                            doPrint(b); // print whatever we have
+                        });
+                    return;
+                }
+            }
+
             doPrint(b);
             return;
         }
