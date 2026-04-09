@@ -739,6 +739,32 @@ function viewOrderDetailss(orders) {
     `;
 
     $('#bill-content').html(billHtml);
+
+    // Prepare a canonical object for thermal printing and store globally so history page can use it
+    try {
+        const thermalItems = billData.map(item => {
+            const qty = (Number(item.fullPortion) || 0) + (Number(item.halfPortion) || 0) || Number(item.quantity) || 1;
+            const price = Number(item.fullPrice) || Number(item.price) || 0;
+            return { name: item.itemName || item.name || '-', quantity: qty, price: price };
+        });
+
+        const thermalOrder = {
+            orderId: firstOrder.orderId || firstOrder.OrderId || '',
+            customer: firstOrder.customerName || firstOrder.customer || '',
+            phone: firstOrder.phone || '',
+            address: firstOrder.address || firstOrder.customerAddress || '',
+            timestamp: firstOrder.createdDate || firstOrder.createdAt || firstOrder.date || new Date(),
+            items: thermalItems,
+            total: finalTotal,
+            discountAmount: discount
+        };
+
+        // Expose for history.js or other pages to trigger thermal print
+        window.currentBillData = thermalOrder;
+    } catch (e) {
+        console.warn('Failed to prepare thermal payload', e);
+    }
+
     $('#bill-modal').addClass('active');
     $('#bill-modal').fadeIn(300);
 

@@ -85,8 +85,35 @@
             window.openBillByOrderId(orderId);
             return;
         }
-        // fallback to Ajax call that home.js GetBillData supports
+        // fallback to Ajax call that returns bill details
         $.ajax({ url: `/Repository/GetBillData?orderId=${orderId}`, method: 'GET', success: function(bill){
+            try {
+                // Normalize bill payload to a canonical array of items if necessary
+                const billArray = Array.isArray(bill) ? bill : (bill.items ? bill.items : [bill]);
+
+                // Prepare a thermal-friendly global payload so Thermal Print can use it
+                const first = billArray[0] || {};
+                const thermalItems = billArray.map(item => {
+                    const qty = (Number(item.fullPortion) || 0) + (Number(item.halfPortion) || 0) || Number(item.quantity) || 1;
+                    const price = Number(item.fullPrice) || Number(item.price) || 0;
+                    return { name: item.itemName || item.name || '-', quantity: qty, price: price };
+                });
+
+                window.currentBillData = {
+                    orderId: first.orderId || first.OrderId || '',
+                    customer: first.customerName || first.customer || '',
+                    phone: first.phone || '',
+                    address: first.address || '',
+                    timestamp: first.createdDate || first.createdAt || first.date || new Date(),
+                    items: thermalItems,
+                    total: thermalItems.reduce((s,it) => s + (it.price * it.quantity), 0),
+                    discountAmount: Number(first.discountAmount || first.discount || 0)
+                };
+            } catch (e) {
+                console.warn('Failed to prepare currentBillData', e);
+                window.currentBillData = null;
+            }
+
             if (typeof buildBillUI === 'function') {
                 buildBillUI(bill);
             } else {
@@ -95,6 +122,78 @@
                 $('#bill-modal').show();
             }
         }});
+    });
+
+    $(document).on('click', '#btnThermalPrint', function() {
+        // Try existing global payload first
+        const b = window.currentBillData;
+        const doPrint = (obj) => {
+            const payload = {
+                OrderId: obj.orderId || '',
+                Name: obj.customer || '',
+                Phone: obj.phone || '',
+                Address: obj.address || '',
+                OrderTime: obj.timestamp ? new Date(obj.timestamp) : new Date(),
+                Items: (obj.items || []).map(it => ({ Name: it.name || it.itemName || '-', Quantity: it.quantity || it.qty || 1, Price: Number(it.price || it.Price || 0) })),
+                Subtotal: Number(obj.total) || 0,
+                Discount: Number(obj.discountAmount || obj.discount || 0) || 0,
+                Total: Number(obj.total) || 0,
+                PrinterName: 'Everycom-58-Series'
+            };
+
+            if (typeof printThermalBill === 'function') {
+                printThermalBill(payload);
+                showNotification('Thermal print requested', 'success');
+            } else {
+                fetch('/api/Print/PrintBill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                    .then(r => r.json()).then(res => showNotification('Thermal print requested', 'success')).catch(err => showNotification('Thermal print failed', 'error'));
+            }
+        };
+
+        if (b && Array.isArray(b.items) && b.items.length > 0) {
+            doPrint(b);
+            return;
+        }
+
+        // Fallback: try to parse order id from displayed bill HTML and re-fetch server data
+        const billText = $('#bill-content').text() || '';
+        const m = billText.match(/Order\s*(?:ID)?\s*[:#\-]?\s*#?([A-Za-z0-9_\-]+)/i);
+        const orderId = m ? m[1] : null;
+        if (!orderId) {
+            alert('No bill selected. Open a bill first.');
+            return;
+        }
+
+        // Fetch bill data and print
+        fetch(`/Repository/GetBillData?orderId=${encodeURIComponent(orderId)}`)
+            .then(r => {
+                if (!r.ok) throw new Error('Failed to load bill');
+                return r.json();
+            })
+            .then(bill => {
+                // normalize into object with items
+                let obj;
+                if (Array.isArray(bill)) {
+                    const first = bill[0] || {};
+                    const items = bill.map(it => ({ name: it.itemName || it.name, quantity: (Number(it.fullPortion)||0) + (Number(it.halfPortion)||0) || Number(it.quantity)||1, price: Number(it.fullPrice||it.price||0) }));
+                    obj = { orderId: first.orderId || first.OrderId || orderId, customer: first.customerName || first.customer || '', phone: first.phone || '', address: first.address || '', timestamp: first.createdDate || first.createdAt || first.date || new Date(), items: items, total: items.reduce((s,i)=>s+(i.price*i.quantity),0), discountAmount: Number(first.discountAmount||first.discount||0) };
+                } else if (bill && bill.items) {
+                    obj = { orderId: bill.orderId || orderId, customer: bill.customerName || bill.customer || '', phone: bill.phone || '', address: bill.address || '', timestamp: bill.createdDate || bill.createdAt || bill.date || new Date(), items: bill.items.map(it=>({ name: it.itemName||it.name, quantity: it.quantity||1, price: Number(it.price||0) })), total: Number(bill.total||0), discountAmount: Number(bill.discountAmount||bill.discount||0) };
+                } else {
+                    // single-row bill
+                    const it = bill;
+                    const qty = (Number(it.fullPortion)||0) + (Number(it.halfPortion)||0) || Number(it.quantity)||1;
+                    obj = { orderId: it.orderId||orderId, customer: it.customerName||it.customer||'', phone: it.phone||'', address: it.address||'', timestamp: it.createdDate||it.createdAt||it.date||new Date(), items: [{ name: it.itemName||it.name, quantity: qty, price: Number(it.price||0) }], total: Number(it.amount||it.price||0), discountAmount: Number(it.discountAmount||it.discount||0) };
+                }
+
+                // Store for later and print
+                window.currentBillData = obj;
+                doPrint(obj);
+            })
+            .catch(err => {
+                console.error('Failed to fetch bill for printing', err);
+                alert('Failed to load bill for printing');
+            });
     });
 
 })();
