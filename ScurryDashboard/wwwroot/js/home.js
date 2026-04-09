@@ -42,9 +42,7 @@ $(document).ready(function () {
     $('#homeLink').hide();
     $('#switchOnOff').show();
     initHomeSwitch();
-    //if ($.fn.modal && $.fn.modal.Constructor) {
-    //    $.fn.modal.Constructor.prototype._enforceFocus = function () { };
-    //}
+
     setTodayDate();
     setupDiscountButtons();
     setInterval(function () {
