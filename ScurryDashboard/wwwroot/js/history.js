@@ -143,7 +143,7 @@
             };
 
             if (typeof printThermalBill === 'function') {
-                // printThermalBill expects a different "order" shape — convert
+                // printThermalBill expects a different "order" shape — conver
                 const orderLike = {
                     orderId: apiPayload.OrderId,
                     customer: apiPayload.Name,
