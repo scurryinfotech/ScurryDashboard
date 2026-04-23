@@ -163,7 +163,7 @@ function hideStopBeepButton() {
 }
 
 function playBeep() {
-    debugger;
+    
     if (!audioUnlocked) return;
     debugger;
     if (isBeepPlaying) return;
@@ -207,7 +207,7 @@ function stopBeep() {
 }
 
 function startTableBeep(tableNo) {
-    debugger;
+     
     if (!audioUnlocked) return;
     if (beepTables[tableNo]) return;
 

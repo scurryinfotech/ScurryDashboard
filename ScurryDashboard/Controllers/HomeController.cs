@@ -56,6 +56,8 @@ namespace ScurryDashboard.Controllers
                 return StatusCode(500, "Error calling Order API");
             }
         }
+
+
         [HttpPost]
         public async Task<IActionResult> SaveTableOrder([FromBody] OrderModel order)
         {
@@ -421,7 +423,7 @@ namespace ScurryDashboard.Controllers
             {
                 var response = await client.GetAsync(apiUrl);
                 var rawJson = await response.Content.ReadAsStringAsync();
-                var orders = JsonSerializer.Deserialize<List<OrderListModel>>(rawJson);
+                var orders = JsonSerializer.Deserialize<List<ScurryDashboard.Model.OrderListModel2>>(rawJson);
 
                 return Json(orders);
             }
