@@ -32,6 +32,8 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+var dbPath = Path.Combine(AppContext.BaseDirectory, "grillnshakes.db");
+var connectionString = $"Data Source={dbPath}";
 
 var app = builder.Build();
 

@@ -28,6 +28,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="grillnshakes.db" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="grillnshakes.db">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="wwwroot\cdn\webfonts\" />
     <Folder Include="wwwroot\sound\" />
   </ItemGroup>
