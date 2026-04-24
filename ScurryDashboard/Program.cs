@@ -1,3 +1,5 @@
+using OrderService.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -23,7 +25,7 @@ else
     builder.Services.AddScoped<OrderService.Repository.Interface.IOrderRepository, OrderService.Repository.Service.OrderRepository>();
 
 }
-
+builder.Services.AddHostedService<SyncService>();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(8);
@@ -35,6 +37,10 @@ builder.Services.AddHttpContextAccessor();
 var dbPath = Path.Combine(AppContext.BaseDirectory, "grillnshakes.db");
 var connectionString = $"Data Source={dbPath}";
 
+// register connection string
+builder.Services.AddSingleton(connectionString);
+
+//builder.WebHost.UseUrls("http://localhost:5055");
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

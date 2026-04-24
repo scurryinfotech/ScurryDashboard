@@ -355,23 +355,37 @@ namespace OrderService.Services
 
         // ─── 4. ORDERS ────────────────────────────────────────
         private async Task SyncOrder(
-            SqliteConnection sqlite, SqlConnection sql,
-            int id, string action)
+     SqliteConnection sqlite, SqlConnection sql,
+     int id, string action)
         {
-            if (action == "DELETE")
+            try
             {
-                var cmd = DbHelper.Proc(sql,
-                    "sp_UpdateTableOrderStatus");
-                cmd.Parameters.AddWithValue(
-                    "@OrderId", id.ToString());
-                cmd.Parameters.AddWithValue("@StatusId", 4);
-                cmd.Parameters.AddWithValue("@Payment_mode", "");
-                cmd.Parameters.AddWithValue("@RowsAffected", 0);
-                await cmd.ExecuteNonQueryAsync();
-                return;
-            }
+                if (action == "DELETE")
+                {
+                    try
+                    {
+                        var cmd = DbHelper.Proc(sql,
+                            "sp_UpdateTableOrderStatus");
+                        cmd.Parameters.AddWithValue(
+                            "@OrderId", id.ToString());
+                        cmd.Parameters.AddWithValue("@StatusId", 4);
+                        cmd.Parameters.AddWithValue("@Payment_mode", "");
+                        cmd.Parameters.AddWithValue("@RowsAffected", 0);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                    catch (SqlException ex)
+                    {
+                        throw new Exception(
+                            $"[SyncOrder] DELETE failed for OrderId {id}. " +
+                            $"SQL Error {ex.Number}: {ex.Message}", ex);
+                    }
+                    return;
+                }
 
-            var getCmd = SQLiteHelper.Query(sqlite, @"
+                SqliteDataReader rdr;
+                try
+                {
+                    var getCmd = SQLiteHelper.Query(sqlite, @"
                 SELECT OrderId, OrderStatus, FullPortion,
                        HalfPortion, TableNo, item_id,
                        Price, customerName, phone,
@@ -380,84 +394,132 @@ namespace OrderService.Services
                        UserId, DeliveryStaffId, CreatedBy
                 FROM   Orders
                 WHERE  Id = @Id");
-            getCmd.Parameters.AddWithValue("@Id", id);
+                    getCmd.Parameters.AddWithValue("@Id", id);
 
-            await using var rdr =
-                await getCmd.ExecuteReaderAsync();
-            if (!await rdr.ReadAsync()) return;
+                    rdr = await getCmd.ExecuteReaderAsync();
+                }
+                catch (SqliteException ex)
+                {
+                    throw new Exception(
+                        $"[SyncOrder] Failed to read Order Id {id} from SQLite. " +
+                        $"SQLite Error {ex.SqliteErrorCode}: {ex.Message}", ex);
+                }
 
-            if (action == "INSERT")
-            {
-                var cmd2 = DbHelper.Proc(sql, "sp_PlaceOrder");
-                cmd2.Parameters.AddWithValue(
-                    "@OrderId", rdr.IsDBNull(0)
-                        ? DBNull.Value : rdr.GetString(0));
-                cmd2.Parameters.AddWithValue(
-                    "@OrderStatus", rdr.GetInt32(1));
-                cmd2.Parameters.AddWithValue(
-                    "@FullPortion", rdr.IsDBNull(2)
-                        ? DBNull.Value : rdr.GetInt32(2));
-                cmd2.Parameters.AddWithValue(
-                    "@HalfPortion", rdr.IsDBNull(3)
-                        ? DBNull.Value : rdr.GetInt32(3));
-                cmd2.Parameters.AddWithValue(
-                    "@TableNo", rdr.IsDBNull(4)
-                        ? DBNull.Value : rdr.GetInt32(4));
-                cmd2.Parameters.AddWithValue(
-                    "@item_id", rdr.IsDBNull(5)
-                        ? DBNull.Value : rdr.GetInt32(5));
-                cmd2.Parameters.AddWithValue(
-                    "@Price", rdr.IsDBNull(6)
-                        ? DBNull.Value : rdr.GetDecimal(6));
-                cmd2.Parameters.AddWithValue(
-                    "@customerName", rdr.IsDBNull(7)
-                        ? DBNull.Value : rdr.GetString(7));
-                cmd2.Parameters.AddWithValue(
-                    "@phone", rdr.IsDBNull(8)
-                        ? DBNull.Value : rdr.GetString(8));
-                cmd2.Parameters.AddWithValue(
-                    "@OrderType", rdr.IsDBNull(9)
-                        ? DBNull.Value : rdr.GetString(9));
-                cmd2.Parameters.AddWithValue(
-                    "@Address", rdr.IsDBNull(10)
-                        ? DBNull.Value : rdr.GetString(10));
-                cmd2.Parameters.AddWithValue(
-                    "@payment_mode", rdr.IsDBNull(11)
-                        ? DBNull.Value : rdr.GetString(11));
-                cmd2.Parameters.AddWithValue(
-                    "@DeliveryType", rdr.IsDBNull(12)
-                        ? DBNull.Value : rdr.GetString(12));
-                cmd2.Parameters.AddWithValue(
-                    "@specialInstructions", rdr.IsDBNull(13)
-                        ? DBNull.Value : rdr.GetString(13));
-                cmd2.Parameters.AddWithValue(
-                    "@UserId", rdr.IsDBNull(14)
-                        ? DBNull.Value : rdr.GetInt32(14));
-                cmd2.Parameters.AddWithValue(
-                    "@DeliveryStaffId", rdr.IsDBNull(15)
-                        ? DBNull.Value : rdr.GetInt32(15));
-                cmd2.Parameters.AddWithValue(
-                    "@CreatedBy", rdr.IsDBNull(16)
-                        ? DBNull.Value : rdr.GetInt32(16));
+                await using (rdr)
+                {
+                    if (!await rdr.ReadAsync())
+                    {
+                        // No matching record found — nothing to sync
+                        return;
+                    }
 
-                await cmd2.ExecuteNonQueryAsync();
+                    if (action == "INSERT")
+                    {
+                        try
+                        {
+                            var cmd2 = DbHelper.Proc(sql, "sp_PlaceOrder");
+                            cmd2.Parameters.AddWithValue(
+                                "@OrderId", rdr.IsDBNull(0)
+                                    ? DBNull.Value : rdr.GetString(0));
+                            cmd2.Parameters.AddWithValue(
+                                "@OrderStatus", rdr.GetInt32(1));
+                            cmd2.Parameters.AddWithValue(
+                                "@FullPortion", rdr.IsDBNull(2)
+                                    ? DBNull.Value : rdr.GetInt32(2));
+                            cmd2.Parameters.AddWithValue(
+                                "@HalfPortion", rdr.IsDBNull(3)
+                                    ? DBNull.Value : rdr.GetInt32(3));
+                            cmd2.Parameters.AddWithValue(
+                                "@TableNo", rdr.IsDBNull(4)
+                                    ? DBNull.Value : rdr.GetInt32(4));
+                            cmd2.Parameters.AddWithValue(
+                                "@item_id", rdr.IsDBNull(5)
+                                    ? DBNull.Value : rdr.GetInt32(5));
+                            cmd2.Parameters.AddWithValue(
+                                "@Price", rdr.IsDBNull(6)
+                                    ? DBNull.Value : rdr.GetDecimal(6));
+                            cmd2.Parameters.AddWithValue(
+                                "@customerName", rdr.IsDBNull(7)
+                                    ? DBNull.Value : rdr.GetString(7));
+                            cmd2.Parameters.AddWithValue(
+                                "@phone", rdr.IsDBNull(8)
+                                    ? DBNull.Value : rdr.GetString(8));
+                            cmd2.Parameters.AddWithValue(
+                                "@OrderType", rdr.IsDBNull(9)
+                                    ? DBNull.Value : rdr.GetString(9));
+                            cmd2.Parameters.AddWithValue(
+                                "@Address", rdr.IsDBNull(10)
+                                    ? DBNull.Value : rdr.GetString(10));
+                            cmd2.Parameters.AddWithValue(
+                                "@payment_mode", rdr.IsDBNull(11)
+                                    ? DBNull.Value : rdr.GetString(11));
+                            cmd2.Parameters.AddWithValue(
+                                "@DeliveryType", rdr.IsDBNull(12)
+                                    ? DBNull.Value : rdr.GetString(12));
+                            cmd2.Parameters.AddWithValue(
+                                "@specialInstructions", rdr.IsDBNull(13)
+                                    ? DBNull.Value : rdr.GetString(13));
+                            cmd2.Parameters.AddWithValue(
+                                "@UserId", rdr.IsDBNull(14)
+                                    ? DBNull.Value : rdr.GetInt32(14));
+                            cmd2.Parameters.AddWithValue(
+                                "@DeliveryStaffId", rdr.IsDBNull(15)
+                                    ? DBNull.Value : rdr.GetInt32(15));
+                            cmd2.Parameters.AddWithValue(
+                                "@CreatedBy", rdr.IsDBNull(16)
+                                    ? DBNull.Value : rdr.GetInt32(16));
+
+                            await cmd2.ExecuteNonQueryAsync();
+                        }
+                        catch (SqlException ex)
+                        {
+                            throw new Exception(
+                                $"[SyncOrder] INSERT failed for OrderId {id} " +
+                                $"via sp_PlaceOrder. SQL Error {ex.Number}: {ex.Message}", ex);
+                        }
+                    }
+                    else if (action == "UPDATE")
+                    {
+                        try
+                        {
+                            var cmd2 = DbHelper.Proc(sql,
+                                "sp_UpdateTableOrderStatus");
+                            cmd2.Parameters.AddWithValue(
+                                "@OrderId", rdr.IsDBNull(0)
+                                    ? id.ToString() : rdr.GetString(0));
+                            cmd2.Parameters.AddWithValue(
+                                "@StatusId", rdr.GetInt32(1));
+                            cmd2.Parameters.AddWithValue(
+                                "@Payment_mode", rdr.IsDBNull(11)
+                                    ? "" : rdr.GetString(11));
+                            cmd2.Parameters.AddWithValue(
+                                "@RowsAffected", 0);
+
+                            await cmd2.ExecuteNonQueryAsync();
+                        }
+                        catch (SqlException ex)
+                        {
+                            throw new Exception(
+                                $"[SyncOrder] UPDATE failed for OrderId {id} " +
+                                $"via sp_UpdateTableOrderStatus. SQL Error {ex.Number}: {ex.Message}", ex);
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentException(
+                            $"[SyncOrder] Unknown action '{action}' for OrderId {id}.");
+                    }
+                }
             }
-            else if (action == "UPDATE")
+            catch (Exception ex) when (ex is not ArgumentException)
             {
-                var cmd2 = DbHelper.Proc(sql,
-                    "sp_UpdateTableOrderStatus");
-                cmd2.Parameters.AddWithValue(
-                    "@OrderId", rdr.IsDBNull(0)
-                        ? id.ToString() : rdr.GetString(0));
-                cmd2.Parameters.AddWithValue(
-                    "@StatusId", rdr.GetInt32(1));
-                cmd2.Parameters.AddWithValue(
-                    "@Payment_mode", rdr.IsDBNull(11)
-                        ? "" : rdr.GetString(11));
-                cmd2.Parameters.AddWithValue(
-                    "@RowsAffected", 0);
+                // Log the full exception here (replace with your logger)
+                Console.WriteLine(
+                    $"[SyncOrder] Unhandled error | Action: {action} | OrderId: {id} | " +
+                    $"Error: {ex.Message}");
 
-                await cmd2.ExecuteNonQueryAsync();
+                // Re-throw to let the caller decide whether to retry / alert
+                throw;
             }
         }
 

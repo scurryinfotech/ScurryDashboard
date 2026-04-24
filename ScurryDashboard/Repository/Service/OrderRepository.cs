@@ -1,11 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Data.SqlClient;
 using OrderService.Model;
 using OrderService.Repository.Interface;
 using System.Data;
-using System.Net;
-using System.Transactions;
 
 namespace OrderService.Repository.Service
 {
