@@ -42,6 +42,24 @@
 
             <div class="gns-sidebar__section-label">Management</div>
 
+            <!-- Add under MANAGEMENT section in your sidebar nav -->
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Vendors" ? "active" : "")"
+                   asp-controller="Vendors" asp-action="Index">
+                <i class="fas fa-truck"></i><span>Vendors</span>
+            </a>
+
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "PurchaseOrders" ? "active" : "")"
+                   asp-controller="PurchaseOrders" asp-action="Index">
+                <i class="fas fa-file-invoice"></i><span>Purchase Orders</span>
+            </a>
+
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "VendorPayments" ? "active" : "")"
+                   asp-controller="VendorPayments" asp-action="Index">
+                <i class="fas fa-history"></i><span>Payment History</span>
+            </a>
+
+
+
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Staff" ? "active" : "")"
                    asp-controller="Staff" asp-action="Index">
                 <i class="fas fa-users"></i><span>Staff</span>
@@ -74,9 +92,9 @@
                 <i class="fas fa-history"></i><span>Order History</span>
             </a>
 
-            <div class="gns-sidebar__section-label">Quick Actions</div>
+            @* <div class="gns-sidebar__section-label">Quick Actions</div> *@
 
-            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "TableManager" ? "active" : "")"
+          @*   <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "TableManager" ? "active" : "")"
                    asp-controller="Home" asp-action="TableManager">
                 <i class="fas fa-table-cells-large" style="color:#e67e22"></i>
                 <span>Table Manager</span>
@@ -92,11 +110,11 @@
                    asp-controller="Home" asp-action="PhoneOrder">
                 <i class="fas fa-phone-volume" style="color:#e67e22"></i>
                 <span>Phone Order</span>
-            </a>
+            </a> *@
 
         </nav>
 
-        <div class="gns-sidebar__footer">
+        <div class="gns-sidebar__footer d-none">
             <div class="gns-sidebar__user">
                 <div class="gns-sidebar__avatar">GN</div>
                 <div>
