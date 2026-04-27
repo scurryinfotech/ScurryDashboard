@@ -1,0 +1,7 @@
+/* Minimal styles to match site theme for history page */
+#orderHistoryTable tbody tr.table-success { background: #f1fdf4; }
+#orderHistoryTable td, #orderHistoryTable th { vertical-align: middle; }
+.gns-filter-row { align-items: center; }
+#revenueDateRange { font-size: .85rem; color: var(--gns-text-muted); }
+#totalRevenue { font-size: 1.2rem; color: var(--gns-accent); }
+#orderCount { font-size: .85rem; color: var(--gns-text-muted); margin-left:6px; }

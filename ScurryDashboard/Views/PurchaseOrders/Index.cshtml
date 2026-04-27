@@ -1,0 +1,315 @@
+﻿@{
+    ViewData["Title"] = "Purchase Orders";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@section Styles {
+<style>
+    .po-status-pending       { background:rgba(245,166,35,.15);  color:#f5a623; padding:3px 10px; border-radius:99px; font-size:.72rem; font-weight:600; }
+    .po-status-partiallypaid { background:rgba(99,102,241,.15);  color:#818cf8; padding:3px 10px; border-radius:99px; font-size:.72rem; font-weight:600; }
+    .po-status-paid          { background:rgba(34,197,94,.12);   color:#22c55e; padding:3px 10px; border-radius:99px; font-size:.72rem; font-weight:600; }
+</style>
+}
+
+<div class="dash-welcome" style="margin-bottom:20px">
+    <div>
+        <h1 class="dash-welcome__title">Purchase Orders <i class="fas fa-file-invoice" style="color:var(--gns-accent)"></i></h1>
+        <p class="dash-welcome__sub">Track all vendor purchase orders</p>
+    </div>
+    <button class="btn-gns" onclick="openOrderModal()">
+        <i class="fas fa-plus mr-1"></i> New Order
+    </button>
+</div>
+
+<div class="gns-card">
+    <div class="gns-card__body" style="padding:0">
+        <div class="table-responsive">
+            <table class="table dataTable" id="poTable" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Vendor</th>
+                        <th>Order Date</th>
+                        <th>Total Amount</th>
+                        <th>Paid</th>
+                        <th>Remaining</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="orderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background:var(--gns-surface);border:1px solid var(--gns-border);border-radius:var(--gns-radius)">
+            <div class="modal-header" style="border-bottom:1px solid var(--gns-border)">
+                <h5 class="modal-title" style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-text)" id="orderModalTitle">New Purchase Order</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="oPurchaseOrderId" value="0">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Vendor *</label>
+                        <select id="oVendorId" class="form-select gns-input">
+                            <option value="">— Select Vendor —</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Order Date *</label>
+                        <input type="date" id="oOrderDate" class="form-control gns-input">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Total Amount *</label>
+                        <input type="number" id="oTotalAmount" class="form-control gns-input" placeholder="0.00" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Advance Paid</label>
+                        <input type="number" id="oAdvancePaid" class="form-control gns-input" placeholder="0.00" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Notes</label>
+                        <textarea id="oNotes" class="form-control gns-input" rows="2" placeholder="Notes..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--gns-border)">
+                <button class="btn-gns btn-gns-ghost" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn-gns" onclick="saveOrder()"><i class="fas fa-save mr-1"></i> Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background:var(--gns-surface);border:1px solid var(--gns-border);border-radius:var(--gns-radius)">
+            <div class="modal-header" style="border-bottom:1px solid var(--gns-border)">
+                <h5 class="modal-title" style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-text)">Record Payment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pPurchaseOrderId">
+                <input type="hidden" id="pVendorId">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Payment Date *</label>
+                        <input type="date" id="pPaymentDate" class="form-control gns-input">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Amount *</label>
+                        <input type="number" id="pAmount" class="form-control gns-input" placeholder="0.00" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Payment Type</label>
+                        <select id="pPaymentType" class="form-select gns-input">
+                            <option value="Advance">Advance</option>
+                            <option value="Partial">Partial</option>
+                            <option value="Full">Full</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Payment Method</label>
+                        <select id="pPaymentMethod" class="form-select gns-input">
+                            <option value="Cash">Cash</option>
+                            <option value="Bank">Bank</option>
+                            <option value="Cheque">Cheque</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Invoice Number</label>
+                        <input type="text" id="pInvoiceNumber" class="form-control gns-input" placeholder="INV-001">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Notes</label>
+                        <textarea id="pNotes" class="form-control gns-input" rows="2" placeholder="Notes..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--gns-border)">
+                <button class="btn-gns btn-gns-ghost" data-bs-dismiss="modal" id="cancelButton">Cancel</button>
+                <button class="btn-gns" style="background:rgba(34,197,94,.2);color:#22c55e;border:1px solid rgba(34,197,94,.3)" onclick="savePayment()">
+                    <i class="fas fa-money-bill-wave mr-1"></i> Record Payment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const Rs = v => 'Rs ' + Number(v).toLocaleString();
+const today = new Date().toISOString().split('T')[0];
+
+$(function () {
+    $('#oOrderDate').val(today);
+    $('#pPaymentDate').val(today);
+    $('#pPaymentDate').attr('max', today);  // Prevent future dates
+
+    loadVendorDropdown();
+    loadOrders();
+});
+
+function loadVendorDropdown() {
+    $.get('/Vendors/GetAll', function (data) {
+        const list = typeof data === 'string' ? JSON.parse(data) : data;
+        let opts = '<option value="">— Select Vendor —</option>';
+        list.filter(v => v.isActive).forEach(v => {
+            opts += `<option value="${v.vendorId}">${v.vendorName}</option>`;
+        });
+        $('#oVendorId').html(opts);
+    });
+}
+
+function loadOrders() {
+    $.get('/PurchaseOrders/GetAll', function (data) {
+        const list = typeof data === 'string' ? JSON.parse(data) : data;
+
+        if ($.fn.DataTable.isDataTable('#poTable'))
+            $('#poTable').DataTable().destroy();
+
+        $('#poTable').DataTable({
+            data: list,
+            destroy: true,
+            pageLength: 10,
+            order: [[0, 'desc']],
+            columns: [
+                { data: 'purchaseOrderId' },
+                { data: 'vendorName', defaultContent: '—' },
+                { data: 'orderDate',  render: d => d ? d.substring(0,10) : '—' },
+                { data: 'totalAmount',     render: v => `<span style="color:var(--gns-accent);font-weight:700">${Rs(v)}</span>` },
+                { data: 'advancePaid',     render: v => `<span style="color:#22c55e">${Rs(v)}</span>` },
+                { data: 'remainingAmount', render: v => v > 0
+                    ? `<span style="color:#ef4444;font-weight:600">${Rs(v)}</span>`
+                    : `<span style="color:#22c55e">Paid</span>` },
+                { data: 'status', render: s => {
+                    const cls = { Pending:'pending', PartiallyPaid:'partiallypaid', Paid:'paid' };
+                    return `<span class="po-status-${(cls[s]||'pending')}">${s}</span>`;
+                }},
+                { data: 'purchaseOrderId', orderable: false,
+                  render: (id, _, row) => `
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                      <button class="btn-gns btn-gns-ghost" style="padding:4px 8px;font-size:.72rem" onclick="editOrder(${id})" title="Edit">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn-gns btn-gns-ghost" style="padding:4px 8px;font-size:.72rem;color:#22c55e" onclick="openPaymentModal(${id},${row.vendorId})" title="Record Payment">
+                        <i class="fas fa-money-bill-wave"></i>
+                      </button>
+                      <a href="/VendorPayments/Index?orderId=${id}" class="btn-gns btn-gns-ghost" style="padding:4px 8px;font-size:.72rem;color:#818cf8" title="View Payments">
+                        <i class="fas fa-history"></i>
+                      </a>
+                      <button class="btn-gns" style="padding:4px 8px;font-size:.72rem;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)" onclick="deleteOrder(${id})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>` }
+            ]
+        });
+    });
+}
+
+function openOrderModal() {
+    $('#oPurchaseOrderId').val(0);
+    $('#oVendorId').val('');
+    $('#oOrderDate').val(today);
+    $('#oTotalAmount,#oAdvancePaid').val('');
+    $('#oNotes').val('');
+    $('#orderModalTitle').text('New Purchase Order');
+    $('#orderModal').modal('show');
+}
+
+function editOrder(id) {
+    $.get('/PurchaseOrders/GetById?id=' + id, function (data) {
+        const o = typeof data === 'string' ? JSON.parse(data) : data;
+        $('#oPurchaseOrderId').val(o.purchaseOrderId);
+        $('#oVendorId').val(o.vendorId);
+        $('#oOrderDate').val(o.orderDate ? o.orderDate.substring(0,10) : today);
+        $('#oTotalAmount').val(o.totalAmount);
+        $('#oAdvancePaid').val(o.advancePaid);
+        $('#oNotes').val(o.notes);
+        $('#orderModalTitle').text('Edit Purchase Order');
+        $('#orderModal').modal('show');
+    });
+}
+
+function saveOrder() {
+    const vendor = $('#oVendorId').val();
+    const total  = parseFloat($('#oTotalAmount').val());
+    if (!vendor)       { alert('Please select a vendor.');    return; }
+    if (isNaN(total) || total <= 0) { alert('Enter a valid total amount.'); return; }
+
+    const model = {
+        purchaseOrderId: parseInt($('#oPurchaseOrderId').val()),
+        vendorId:     parseInt(vendor),
+        orderDate:    $('#oOrderDate').val(),
+        totalAmount:  total,
+        advancePaid:  parseFloat($('#oAdvancePaid').val()) || 0,
+        notes:        $('#oNotes').val(),
+        modifiedBy:   'Admin'
+    };
+
+    $.ajax({
+        url: '/PurchaseOrders/Save', method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(model),
+        success: () => { $('#orderModal').modal('hide'); loadOrders(); },
+        error: (xhr) => alert('Error: ' + xhr.responseText)
+    });
+}
+
+function openPaymentModal(orderId, vendorId) {
+    $('#pPurchaseOrderId').val(orderId);
+    $('#pVendorId').val(vendorId);
+    $('#pAmount,#pInvoiceNumber,#pNotes').val('');
+    $('#pPaymentDate').val(today);
+    $('#pPaymentType').val('Partial');
+    $('#pPaymentMethod').val('Cash');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('paymentModal')).show();
+}
+
+function savePayment() {
+    const amount = parseFloat($('#pAmount').val());
+    const pDate  = $('#pPaymentDate').val();
+
+    if (isNaN(amount) || amount <= 0) { alert('Enter a valid amount.'); return; }
+    if (!pDate)                        { alert('Select a payment date.'); return; }
+    if (pDate > today)                 { alert('Payment date cannot be in the future.'); return; }
+
+    const model = {
+        purchaseOrderId: parseInt($('#pPurchaseOrderId').val()),
+        vendorId:        parseInt($('#pVendorId').val()),
+        paymentDate:     pDate,
+        amount:          amount,
+        paymentType:     $('#pPaymentType').val(),
+        paymentMethod:   $('#pPaymentMethod').val(),
+        invoiceNumber:   $('#pInvoiceNumber').val(),
+        notes:           $('#pNotes').val(),
+        modifiedBy:      'Admin'
+    };
+
+    $.ajax({
+        url: '/VendorPayments/Save', method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(model),
+        success: () => {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('paymentModal')).hide();
+            loadOrders();
+        },
+        error: (xhr) => alert('Error: ' + xhr.responseText)
+    });
+}
+
+function deleteOrder(id) {
+    if (!confirm('Delete this purchase order?')) return;
+    $.ajax({
+        url: '/PurchaseOrders/Delete?id=' + id, method: 'DELETE',
+        success: () => loadOrders(),
+        error: (xhr) => alert('Error: ' + xhr.responseText)
+    });
+}
+</script>
+}

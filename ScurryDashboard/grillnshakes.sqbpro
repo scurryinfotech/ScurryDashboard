@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="grillnshakes.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="1"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="505"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title=".Browsables" custom_title="0" dock_id="3" table="0,10:Browsables"/><dock_state state="000000ff00000000fd00000001000000020000039100000257fc0100000003fb000000160064006f0063006b00420072006f00770073006500310100000000000003910000000000000000fb000000160064006f0063006b00420072006f00770073006500320100000000000003910000000000000000fb000000160064006f0063006b00420072006f00770073006500330100000000000003910000011e00ffffff000002690000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">-- ============================================================
+--  SQLite Version of RestaurantDb
+--  Aapki SQL Server DB ka SQLite equivalent
+--  DB Browser for SQLite mein ya code mein run karo
+-- ============================================================
+
+-- ─── 1. AppSettings ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS AppSettings (
+    Id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+    SettingKey   TEXT,
+    SettingValue TEXT
+);
+
+-- ─── 2. Attendance ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Attendance (
+    AttendanceId   INTEGER  PRIMARY KEY AUTOINCREMENT,
+    StaffId        INTEGER  NOT NULL,
+    AttendanceDate TEXT     NOT NULL,
+    Status         TEXT     NOT NULL,
+    CheckIn        TEXT,
+    CheckOut       TEXT,
+    OvertimeHours  REAL,
+    Notes          TEXT,
+    IsActive       INTEGER  DEFAULT 1,
+    IsDeleted      INTEGER  DEFAULT 0,
+    CreatedAt      TEXT     DEFAULT (datetime('now')),
+    ModifiedAt     TEXT,
+    ModifiedBy     TEXT,
+    UNIQUE (StaffId, AttendanceDate)
+);
+
+-- ─── 3. AttendanceLog ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS AttendanceLog (
+    LogId        INTEGER  PRIMARY KEY AUTOINCREMENT,
+    AttendanceId INTEGER,
+    Action       TEXT,
+    OldValues    TEXT,
+    NewValues    TEXT,
+    ChangedBy    TEXT,
+    ChangedAt    TEXT     DEFAULT (datetime('now'))
+);
+
+-- ─── 4. CoffeeOrders ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS CoffeeOrders (
+    OrderId       INTEGER  PRIMARY KEY AUTOINCREMENT,
+    OrderNumber   TEXT     UNIQUE,
+    CustomerName  TEXT,
+    FloorNo       TEXT,
+    RoomNo        TEXT,
+    TotalAmount   REAL,
+    OrderStatus   INTEGER,
+    CreatedDate   TEXT     DEFAULT (datetime('now')),
+    CustomerPhone TEXT,
+    IsActive      INTEGER  DEFAULT 1,
+    CreatedBy     INTEGER,
+    ModifiedDate  TEXT
+);
+
+-- ─── 5. Customers ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Customers (
+    Id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+    Name         TEXT     NOT NULL,
+    Phone        TEXT     NOT NULL,
+    CreatedDate  TEXT     DEFAULT (datetime('now')),
+    CreatedBy    INTEGER  NOT NULL,
+    ModifiedDate TEXT,
+    ModifiedBy   INTEGER,
+    IsActive     INTEGER  NOT NULL DEFAULT 1,
+    Password     TEXT,
+    loginame     TEXT,
+    Address      TEXT
+);
+
+-- ─── 6. DailyExpenseLog ─────────────────────────────────────
+CREATE TABLE IF NOT EXISTS DailyExpenseLog (
+    LogId           INTEGER  PRIMARY KEY AUTOINCREMENT,
+    DailyExpenseId  INTEGER,
+    Action          TEXT,
+    OldValues       TEXT,
+    NewValues       TEXT,
+    ChangedBy       TEXT,
+    ChangedAt       TEXT     DEFAULT (datetime('now'))
+);
+
+-- ─── 7. DailyExpenses ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS DailyExpenses (
+    DailyExpenseId  INTEGER  PRIMARY KEY AUTOINCREMENT,
+    Title           TEXT     NOT NULL,
+    Category        TEXT,
+    Amount          REAL     NOT NULL,
+    ExpenseDate     TEXT     NOT NULL,
+    PaidBy          TEXT,
+    Notes           TEXT,
+    IsActive        INTEGER  DEFAULT 1,
+    IsDeleted       INTEGER  DEFAULT 0,
+    CreatedAt       TEXT     DEFAULT (datetime('now')),
+    ModifiedAt      TEXT,
+    ModifiedBy      TEXT,
+    PaymentMode     TEXT     NOT NULL DEFAULT 'Cash'
+);
+
+-- ─── 8. HotCoffeeVarieties ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS HotCoffeeVarieties (
+    Id          INTEGER  PRIMARY KEY AUTOINCREMENT,
+    CoffeeName  TEXT     NOT NULL,
+    Description TEXT,
+    CoffeeType  TEXT,
+    Ingredients TEXT,
+    Price       REAL,
+    ImageUrl    TEXT,
+    CreatedDate TEXT     DEFAULT (datetime('now')),
+    IsActive    INTEGER  DEFAULT 1,
+    CreatedBy   INTEGER,
+    Image       TEXT
+);
+
+-- ─── 9. menu_categories ─────────────────────────────────────
+CREATE TABLE IF NOT EXISTS menu_categories (
+    category_id   INTEGER  PRIMARY KEY AUTOINCREMENT,
+    category_name TEXT     NOT NULL UNIQUE,
+    description   TEXT,
+    CreatedDate   TEXT     DEFAULT (datetime('now')),
+    CreatedBy     INTEGER,
+    ModifiedDate  TEXT,
+    ModifiedBy    INTEGER,
+    IsActive      INTEGER  DEFAULT 1
+);
+
+-- ─── 10. menu_subcategories ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS menu_subcategories (
+    subcategory_id   INTEGER  PRIMARY KEY AUTOINCREMENT,
+    category_id      INTEGER  NOT NULL,
+    subcategory_name TEXT     NOT NULL,
+    description      TEXT,
+    display_order    INTEGER,
+    CreatedDate      TEXT     DEFAULT (datetime('now')),
+    CreatedBy        INTEGER,
+    ModifiedDate     TEXT,
+    ModifiedBy       INTEGER,
+    IsActive         INTEGER  DEFAULT 1,
+    FOREIGN KEY (category_id) REFERENCES menu_categories(category_id)
+);
+
+-- ─── 11. menu_items ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS menu_items (
+    item_id        INTEGER  PRIMARY KEY AUTOINCREMENT,
+    subcategory_id INTEGER  NOT NULL,
+    item_name      TEXT     NOT NULL,
+    description    TEXT,
+    image_src      TEXT,
+    price1         REAL,
+    price2         REAL,
+    count1         INTEGER,
+    count2         INTEGER,
+    title          TEXT,
+    CreatedDate    TEXT     DEFAULT (datetime('now')),
+    CreatedBy      INTEGER,
+    ModifiedDate   TEXT,
+    ModifiedBy     INTEGER,
+    IsActive       INTEGER  DEFAULT 1,
+    image_data     TEXT,
+    FOREIGN KEY (subcategory_id) REFERENCES menu_subcategories(subcategory_id)
+);
+
+-- ─── 12. OrderStatusMaster ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS OrderStatusMaster (
+    Id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+    Name         TEXT     NOT NULL UNIQUE,
+    CreatedDate  TEXT     DEFAULT (datetime('now')),
+    CreatedBy    INTEGER,
+    ModifiedDate TEXT,
+    ModifiedBy   INTEGER,
+    IsActive     INTEGER  DEFAULT 1
+);
+
+-- ─── 13. Orders ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Orders (
+    Id                  INTEGER  PRIMARY KEY AUTOINCREMENT,
+    OrderId             TEXT,
+    OrderStatus         INTEGER  NOT NULL DEFAULT 1,
+    FullPortion         INTEGER,
+    HalfPortion         INTEGER,
+    TableNo             INTEGER,
+    CreatedDate         TEXT     DEFAULT (datetime('now')),
+    CreatedBy           INTEGER,
+    ModifiedDate        TEXT,
+    ModifiedBy          INTEGER,
+    IsActive            INTEGER  DEFAULT 1,
+    item_id             INTEGER,
+    Price               REAL,
+    customerName        TEXT,
+    phone               TEXT,
+    OrderType           TEXT,
+    Address             TEXT,
+    payment_mode        TEXT,
+    DeliveryType        TEXT,
+    specialInstructions TEXT,
+    UserId              INTEGER,
+    DeliveryStaffId     INTEGER,
+    IsSynced            INTEGER  DEFAULT 0
+);
+
+-- ─── 14. OrderItems ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS OrderItems (
+    Id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+    OrderId    INTEGER,
+    CoffeeId   INTEGER,
+    Quantity   INTEGER  NOT NULL DEFAULT 1,
+    Price      REAL,
+    TotalPrice REAL,            -- SQL Server mein computed tha, yahan manually save karo
+    FOREIGN KEY (OrderId) REFERENCES Orders(Id)
+);
+
+-- ─── 15. OrderSummary ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS OrderSummary (
+    SummaryId        INTEGER  PRIMARY KEY AUTOINCREMENT,
+    OrderId          TEXT     NOT NULL,
+    CustomerName     TEXT,
+    Phone            TEXT,
+    TotalAmount      REAL     NOT NULL DEFAULT 0,
+    DiscountAmount   REAL     NOT NULL DEFAULT 0,
+    FinalAmount      REAL     NOT NULL DEFAULT 0,
+    CreatedDate      TEXT     DEFAULT (datetime('now')),
+    CompletedDate    TEXT,
+    PaymentMode      TEXT,
+    specialInstruction TEXT
+);
+
+-- ─── 16. ShopExpenses ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS ShopExpenses (
+    ExpenseId    INTEGER  PRIMARY KEY AUTOINCREMENT,
+    Title        TEXT     NOT NULL,
+    Category     TEXT,
+    Amount       REAL     NOT NULL,
+    ExpenseDate  TEXT     NOT NULL,
+    Description  TEXT,
+    IsActive     INTEGER  DEFAULT 1,
+    IsDeleted    INTEGER  DEFAULT 0,
+    CreatedAt    TEXT     DEFAULT (datetime('now')),
+    ModifiedAt   TEXT,
+    ModifiedBy   TEXT,
+    PaymentMode  TEXT     NOT NULL DEFAULT 'Cash'
+);
+
+-- ─── 17. Staff ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Staff (
+    StaffId         INTEGER  PRIMARY KEY AUTOINCREMENT,
+    FullName        TEXT     NOT NULL,
+    RoleId          INTEGER,
+    Phone           TEXT,
+    Email           TEXT,
+    CNIC            TEXT,
+    Department      TEXT,
+    Salary          REAL,
+    JoinDate        TEXT,
+    IsActive        INTEGER  DEFAULT 1,
+    IsDeleted       INTEGER  DEFAULT 0,
+    CreatedAt       TEXT     DEFAULT (datetime('now')),
+    ModifiedAt      TEXT,
+    ModifiedBy      TEXT,
+    AvalfDelivery   INTEGER  NOT NULL DEFAULT 0
+);
+
+-- ─── 18. StaffLog ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS StaffLog (
+    LogId     INTEGER  PRIMARY KEY AUTOINCREMENT,
+    StaffId   INTEGER,
+    Action    TEXT,
+    OldValues TEXT,
+    NewValues TEXT,
+    ChangedBy TEXT,
+    ChangedAt TEXT     DEFAULT (datetime('now'))
+);
+
+-- ─── 19. Users ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Users (
+    Id                 INTEGER  PRIMARY KEY AUTOINCREMENT,
+    Username           TEXT     NOT NULL UNIQUE,
+    Password           TEXT     NOT NULL,
+    JwtToken           TEXT,
+    JwtTokenExpiryDate TEXT,
+    CreatedDate        TEXT     DEFAULT (datetime('now')),
+    CreatedBy          INTEGER,
+    ModifiedDate       TEXT,
+    ModifiedBy         INTEGER,
+    IsActive           INTEGER  DEFAULT 1
+);
+
+-- ─── 20. UserTableMaster ────────────────────────────────────
+CREATE TABLE IF NOT EXISTS UserTableMaster (
+    Id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+    UserId       INTEGER  NOT NULL,
+    TableCount   INTEGER  NOT NULL DEFAULT 0,
+    CreatedDate  TEXT     DEFAULT (datetime('now')),
+    CreatedBy    INTEGER,
+    ModifiedDate TEXT,
+    ModifiedBy   INTEGER,
+    IsActive     INTEGER  DEFAULT 1
+);
+
+-- ─── 21. Vendors ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Vendors (
+    VendorId        INTEGER  PRIMARY KEY AUTOINCREMENT,
+    VendorName      TEXT     NOT NULL,
+    ContactPerson   TEXT,
+    Phone           TEXT,
+    Email           TEXT,
+    Address         TEXT,
+    CNIC            TEXT,
+    IsActive        INTEGER  NOT NULL DEFAULT 1,
+    IsDeleted       INTEGER  NOT NULL DEFAULT 0,
+    CreatedAt       TEXT     DEFAULT (datetime('now')),
+    CreatedByStaffId INTEGER,
+    ModifiedBy      TEXT,
+    ModifiedAt      TEXT
+);
+
+-- ─── 22. VendorPayments ─────────────────────────────────────
+CREATE TABLE IF NOT EXISTS VendorPayments (
+    PaymentId        INTEGER  PRIMARY KEY AUTOINCREMENT,
+    PurchaseOrderId  INTEGER  NOT NULL,
+    VendorId         INTEGER  NOT NULL,
+    PaymentDate      TEXT     NOT NULL,
+    Amount           REAL     NOT NULL,
+    PaymentType      TEXT     NOT NULL,
+    PaymentMethod    TEXT     NOT NULL,
+    InvoiceNumber    TEXT,
+    ReferenceNumber  TEXT,
+    Notes            TEXT,
+    CreatedAt        TEXT     DEFAULT (datetime('now')),
+    CreatedByStaffId INTEGER,
+    ModifiedBy       TEXT,
+    FOREIGN KEY (VendorId) REFERENCES Vendors(VendorId)
+);
+
+-- ─── 23. SyncLog (NAYA - offline sync ke liye) ──────────────
+CREATE TABLE IF NOT EXISTS SyncLog (
+    Id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+    TableName  TEXT     NOT NULL,
+    RecordId   INTEGER  NOT NULL,
+    Action     TEXT     NOT NULL,  -- 'INSERT', 'UPDATE', 'DELETE'
+    IsSynced   INTEGER  DEFAULT 0,
+    CreatedAt  TEXT     DEFAULT (datetime('now')),
+    SyncedAt   TEXT
+);
+
+-- ─── Default Data ────────────────────────────────────────────
+INSERT OR IGNORE INTO OrderStatusMaster (Name, IsActive) VALUES
+    ('Pending',    1),
+    ('Preparing',  1),
+    ('Served',     1),
+    ('Cancelled',  1),
+    ('Paid',       1);
+
+INSERT OR IGNORE INTO AppSettings (SettingKey, SettingValue) VALUES
+    ('AppVersion', '1.0'),
+    ('LastSync',   '');</sql><current_tab id="0"/></tab_sql></sqlb_project>

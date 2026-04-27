@@ -42,16 +42,13 @@ $(document).ready(function () {
     $('#homeLink').hide();
     $('#switchOnOff').show();
     initHomeSwitch();
-    //if ($.fn.modal && $.fn.modal.Constructor) {
-    //    $.fn.modal.Constructor.prototype._enforceFocus = function () { };
-    //}
+
     setTodayDate();
     setupDiscountButtons();
     setInterval(function () {
         loadTableCount();
         loadTableOrders(false);
         getOrdersFromRestaurant();
-        loadOrderHistory(true);
         //setupInfiniteScroll();
         getOrdersFromCoffee();
         
@@ -60,6 +57,31 @@ $(document).ready(function () {
 
 
     //initializeConnectionUI();
+
+    // Hide New Order button until a table is selected (support several possible selectors)
+    try {
+        $('[id=newOrderBtn], .new-order-btn, #openNewOrder').hide();
+    } catch (e) { }
+
+    // inject simple CSS for selected table highlight
+    try {
+        $('<style>.selected-table{box-shadow:0 0 0 3px rgba(255,165,0,0.35) !important; border:2px solid #ffb84d !important;}</style>').appendTo('head');
+    } catch (e) { }
+
+    // New Order button: open modal for currently selected table
+    $(document).on('click', '#newOrderBtn, .new-order-btn, #openNewOrder', function () {
+        if (window.currentSelectedTableNo) {
+            // If NewOrder page exposes an opener function, call it; otherwise navigate with table query
+            if (typeof window.openNewOrderModal === 'function') {
+                window.openNewOrderModal(window.currentSelectedTableNo);
+            } else {
+                window.location.href = '/Repository/NewOrder?table=' + encodeURIComponent(window.currentSelectedTableNo);
+            }
+        } else {
+            // friendly hint
+            alert('Please select a table before creating a new order');
+        }
+    });
 
     //// Zomato button click handler
     //$('#zomatoBtn').on('click', function () {
@@ -141,7 +163,7 @@ function hideStopBeepButton() {
 }
 
 function playBeep() {
-    debugger;
+    
     if (!audioUnlocked) return;
     debugger;
     if (isBeepPlaying) return;
@@ -185,7 +207,7 @@ function stopBeep() {
 }
 
 function startTableBeep(tableNo) {
-    debugger;
+     
     if (!audioUnlocked) return;
     if (beepTables[tableNo]) return;
 
@@ -267,7 +289,7 @@ $(document).on("click", "#stopBeepBtn", function () {
 
 function initHomeSwitch() {
     $.ajax({
-        url: '/Home/GetAvailabilityHomeDelivery',
+        url: '/R/GetAvailabilityHomeDelivery',
         method: 'GET',
         contentType: 'application/json',
         success: function (data) {
@@ -294,18 +316,32 @@ function calculateRevenue(orders) {
         return;
     }
 
-    let grouped = {};
+    // Normalize to one summary per orderId (use `amount` field returned by API)
+    const unique = {};
     orders.forEach(o => {
-        if (!grouped[o.orderId]) {
-            grouped[o.orderId] = Number(o.finalAmount) || 0;
+        const id = o.orderId ?? o.order_id ?? o.id ?? (o.OrderId ?? null);
+        const amt = Number(o.amount ?? o.Amount ?? o.finalAmount ?? o.FinalAmount ?? o.TotalAmount ?? o.total ?? 0) || 0;
+        if (!id) {
+            // fallback to createdAt-based unique key
+            const key = String(o.createdAt ?? o.Date ?? o.date ?? new Date().toISOString());
+            unique[`__${key}_${Math.random().toString(36).slice(2,7)}`] = { amount: amt, createdAt: o.createdAt ?? o.Date ?? o.date };
+        } else if (!unique[id]) {
+            unique[id] = { amount: amt, createdAt: o.createdAt ?? o.Date ?? o.date };
         }
     });
 
-    // Total revenue = sum of unique finalAmount values
-    const totalRevenue = Object.values(grouped).reduce((a, b) => a + b, 0);
+    // Group by local date (ignore time) to get day-wise revenue
+    const daily = {};
+    Object.values(unique).forEach(u => {
+        const parsed = Date.parse(u.createdAt);
+        if (isNaN(parsed)) return;
+        const d = new Date(parsed);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        daily[key] = (daily[key] || 0) + Number(u.amount || 0);
+    });
 
-    // Unique order count
-    const orderCount = Object.keys(grouped).length;
+    const totalRevenue = Object.values(daily).reduce((a, b) => a + b, 0);
+    const orderCount = Object.keys(unique).length;
 
     $('#totalRevenue').text(`₹${totalRevenue.toFixed(2)}`);
     $('#orderCount').text(`${orderCount} Orders`);
@@ -338,24 +374,25 @@ function applyDateFilter() {
         return;
     }
 
-    const startDate = new Date(start);
-    startDate.setHours(0, 0, 0, 0);
+    // Build an inclusive start (>= startOfDay) and exclusive end (< nextDay) range
+    const startOfDay = Date.parse(start + 'T00:00:00'); // local midnight
+    const nextOfEndDay = Date.parse(end + 'T00:00:00') + 24 * 60 * 60 * 1000; // exclusive
 
-    const endDate = new Date(end);
-    endDate.setHours(23, 59, 59, 999);
-
-    if (startDate > endDate) {
+    if (isNaN(startOfDay) || isNaN(nextOfEndDay) || startOfDay >= nextOfEndDay) {
         alert("Start date cannot be after end date");
         return;
     }
 
-    // Filter the data
+    // Filter the data strictly using createdAt (OrderSummary) when available, falling back to tolerant fields
     filteredOrdersData = allOrdersData.filter(order => {
-        const orderDate = new Date(order.date);
-        return orderDate >= startDate && orderDate <= endDate;
+        const dval = order.createdAt ?? order.createdDate ?? order.CreatedDate ?? order.Date ?? order.date ?? order.completedAt ?? order.CompletedDate;
+        if (!dval) return false;
+        const t = Date.parse(dval);
+        if (isNaN(t)) return false;
+        return t >= startOfDay && t < nextOfEndDay;
     });
 
-    // Update revenue display
+    // Update revenue display (use filtered data)
     updateRevenueDateRange(start, end);
     calculateRevenue(filteredOrdersData);
 
@@ -399,7 +436,7 @@ function updateHomeUI() {
 function toggleHomeAvailability(isAvailable) {
 
     $.ajax({
-        url: '/Home/SetAvailabilityHomeDelivery',
+        url: '/Repository/SetAvailabilityHomeDelivery',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(isAvailable),
@@ -429,7 +466,7 @@ function loadOrderHistory(isInitial = false) {
     isLoading = true;
     $('#loadingSpinner').addClass('active');
     $.ajax({
-        url: '/Home/GetOrderHistory',
+        url: '/Repository/GetOrderHistory',
         type: 'GET',
         success: function (data) {
             allOrdersData = data || [];
@@ -441,7 +478,10 @@ function loadOrderHistory(isInitial = false) {
                 const endDate = new Date(end);
                 endDate.setHours(23, 59, 59, 999);
                 filteredOrdersData = allOrdersData.filter(order => {
-                    const orderDate = new Date(order.date);
+                    const dval = order.date ?? order.Date ?? order.SummaryDate ?? order.completedAt ?? order.CompletedDate ?? order.createdDate ?? order.CreatedDate;
+                    if (!dval) return false;
+                    const orderDate = new Date(dval);
+                    if (isNaN(orderDate)) return false;
                     return orderDate >= startDate && orderDate <= endDate;
                 });
             } else {
@@ -453,8 +493,9 @@ function loadOrderHistory(isInitial = false) {
                 updateRevenueDateRange(start, end);
             }
 
-            calculateRevenue(allOrdersData);
-            displayOrdersPage(allOrdersData);
+            // Calculate revenue from filtered (summary) rows
+            calculateRevenue(filteredOrdersData);
+            displayOrdersPage(filteredOrdersData);
 
             isLoading = false;
             $('#loadingSpinner').removeClass('active');
@@ -519,14 +560,16 @@ function displayOrdersPage(dataToDisplay = filteredOrdersData) {
         const orders = groupedOrders[orderId];
         const first = orders[0];
         const totalItems = orders.length;
-        const date = first.date ? new Date(first.date).toLocaleString('en-IN') : '';
+        const created = first.createdAt ?? first.date ?? first.Date ?? first.completedAt ?? '';
+        const date = created ? new Date(created).toLocaleString('en-IN') : '';
+        const amount = Number(first.amount ?? first.finalAmount ?? first.FinalAmount ?? first.TotalAmount ?? first.total ?? 0) || 0;
         return [
             `<strong>${first.orderId}</strong>`,
             first.customerName || 'N/A',
             first.phone || 'N/A',
             first.tableNo ? 'Table ' + first.tableNo : 'N/A',
             `<div style="max-width:200px; white-space:normal;">${first.itemName || 'N/A'}</div>`,
-            `<strong>₹${(Number(first.finalAmount) || 0).toFixed(2)}</strong>`,
+            `<strong>₹${amount.toFixed(2)}</strong>`,
             totalItems,
             first.paymentMode || 'Online',
             date,
@@ -562,7 +605,7 @@ function displayOrdersPage(dataToDisplay = filteredOrdersData) {
                 autoWidth: false,
                 deferRender: true,
                 columnDefs: [{ orderable: false, targets: -1 }, { className: 'dt-control', targets: -1 }],
-                destroy: false,
+                destroy: true, // allow re-init safely
                 initComplete: function () {
                     try { this.columns.adjust(); if (this.responsive) this.responsive.recalc(); } catch (e) { }
                 }
@@ -615,8 +658,14 @@ function viewOrderDetailss(orders) {
     }
 
     const firstOrder = orders[0];
+    // tolerant field mapping
+    const orderIdVal = firstOrder.orderId || firstOrder.OrderId || firstOrder.order_id || firstOrder.id || '';
+    const customerVal = firstOrder.customerName || firstOrder.customer || firstOrder.name || '';
+    const phoneVal = firstOrder.phone || firstOrder.customerPhone || firstOrder.phoneNumber || '';
+    const addrVal = firstOrder.address || firstOrder.addr || '';
     const totalAmount = orders.reduce((sum, order) => sum + (Number(order.price) || 0), 0);
-    const date = new Date(firstOrder.date).toLocaleString('en-IN', {
+    const dateValRaw = firstOrder.date || firstOrder.createdDate || firstOrder.createdAt || firstOrder.timestamp || new Date();
+    const date = new Date(dateValRaw).toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
@@ -657,10 +706,10 @@ function viewOrderDetailss(orders) {
 
         <!-- Order Details -->
         <div style="margin-top:6px; font-size:12px;">
-            <div><strong>Order:</strong> #${firstOrder.orderId}</div>
+                <div><strong>Order:</strong> #${orderIdVal}</div>
             <div><strong>Date:</strong> ${date}</div>
-            <div><strong>Name:</strong> ${firstOrder.customerName || 'Walk-in'}</div>
-            <div><strong>Phone:</strong> ${firstOrder.phone || 'N/A'}</div>
+                <div><strong>Name:</strong> ${customerVal || 'Walk-in'}</div>
+                <div><strong>Phone:</strong> ${phoneVal || 'N/A'}</div>
             <div><strong>Table:</strong> ${firstOrder.tableNo || 'N/A'}</div>
             <div><strong>Pay:</strong> ${firstOrder.paymentMode || 'CASH'}</div>
         </div>
@@ -696,6 +745,32 @@ function viewOrderDetailss(orders) {
     `;
 
     $('#bill-content').html(billHtml);
+
+    // Prepare a canonical object for thermal printing and store globally so history page can use it
+    try {
+        const thermalItems = billData.map(item => {
+            const qty = (Number(item.fullPortion) || 0) + (Number(item.halfPortion) || 0) || Number(item.quantity) || 1;
+            const price = Number(item.fullPrice) || Number(item.price) || 0;
+            return { name: item.itemName || item.name || '-', quantity: qty, price: price };
+        });
+
+        const thermalOrder = {
+            orderId: firstOrder.orderId || firstOrder.OrderId || '',
+            customer: firstOrder.customerName || firstOrder.customer || '',
+            phone: firstOrder.phone || '',
+            address: firstOrder.address || firstOrder.customerAddress || '',
+            timestamp: firstOrder.createdDate || firstOrder.createdAt || firstOrder.date || new Date(),
+            items: thermalItems,
+            total: finalTotal,
+            discountAmount: discount
+        };
+
+        // Expose for history.js or other pages to trigger thermal print
+        window.currentBillData = thermalOrder;
+    } catch (e) {
+        console.warn('Failed to prepare thermal payload', e);
+    }
+
     $('#bill-modal').addClass('active');
     $('#bill-modal').fadeIn(300);
 
@@ -724,28 +799,75 @@ $(document).on('click', '#bill-modal', function (e) {
 });
 function buildBillUI(billData) {
 
-    if (!billData || billData.length === 0) {
+    // Normalize input: support either an array of item rows or an object with items[]
+    if (!billData) {
         alert("No bill found.");
         return;
     }
 
+    let itemsArray = [];
+    let orderRoot = {};
+    if (Array.isArray(billData)) {
+        itemsArray = billData;
+        orderRoot = billData[0] || {};
+    } else if (billData.items && Array.isArray(billData.items)) {
+        itemsArray = billData.items;
+        orderRoot = billData;
+    } else if (typeof billData === 'object') {
+        // single-line record
+        itemsArray = [billData];
+        orderRoot = billData;
+    }
 
-    const firstOrder = billData[0];
+    if (itemsArray.length === 0) {
+        alert('No bill items found.');
+        return;
+    }
 
-    const subtotal = billData.reduce((sum, item) => {
+    // tolerant field mapping
+    const orderIdVal = orderRoot.orderId || orderRoot.OrderId || orderRoot.order_id || orderRoot.id || '';
+    let customerVal = orderRoot.customerName || orderRoot.customer || orderRoot.name || '';
+    let phoneVal = orderRoot.phone || orderRoot.customerPhone || orderRoot.phoneNumber || '';
+    let addrVal = orderRoot.address || orderRoot.addr || '';
+    const dateValRaw = orderRoot.createdDate || orderRoot.createdAt || orderRoot.date || orderRoot.timestamp || new Date();
+
+    const subtotal = itemsArray.reduce((sum, item) => {
         const fullQty = Number(item.fullPortion) || 0;
         const halfQty = Number(item.halfPortion) || 0;
-
-        const fullPrice = Number(item.fullPrice) || Number(item.price) || 0;
-        const halfPrice = Number(item.halfPrice) || (Number(item.price) / 2) || 0;
-
-        return sum + (fullQty * fullPrice) + (halfQty * halfPrice);
+        const qty = (fullQty + halfQty) || Number(item.quantity) || 1;
+        const unitPrice = Number(item.fullPrice) || Number(item.price) || 0;
+        return sum + (qty * unitPrice);
     }, 0);
 
-    const discount = Number(firstOrder.discountAmount) || 0;
+    const discount = Number(orderRoot.discountAmount || orderRoot.discount || 0);
     const finalTotal = subtotal - discount;
 
-    let billHtml = `
+    let itemsHtml = '';
+    itemsArray.forEach((item, i) => {
+        const fullQty = Number(item.fullPortion) || 0;
+        const halfQty = Number(item.halfPortion) || 0;
+        const qtyText = fullQty || halfQty ? `${fullQty}F ${halfQty}H` : (item.quantity || 1);
+        const unitPrice = Number(item.fullPrice) || Number(item.price) || 0;
+        const qty = (fullQty + halfQty) || Number(item.quantity) || 1;
+        const totalItemPrice = qty * unitPrice;
+
+        itemsHtml += `
+            <div style="display:flex; font-size:14px; justify-content:space-between;">
+                <span>${i + 1}. ${item.itemName || item.name || '-'} (${qtyText})</span>
+                <span>₹${totalItemPrice.toFixed(2)}</span>
+            </div>
+            `;
+    });
+
+    const date = new Date(dateValRaw).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const billHtml = `
     <div id="printable-bill" style="
         width:220px;
         font-family:'Courier New', monospace;
@@ -765,36 +887,18 @@ function buildBillUI(billData) {
         </div>
 
         <div style="font-size:14px;">
-            Order ID : <strong>#${firstOrder.orderId}</strong><br/>
-            Date     : ${new Date(firstOrder.createdDate).toLocaleString()}<br/>
-            Name     : ${firstOrder.customerName}<br/>
-            Phone    : ${firstOrder.phone}<br/>
-            Notes: ${firstOrder.specialInstructions}<br/>
+            Order ID : <strong>#${orderIdVal}</strong><br/>
+            Date     : ${date}<br/>
+            Name     : ${customerVal}<br/>
+            Phone    : ${phoneVal}<br/>
+            Notes: ${orderRoot.specialInstructions || orderRoot.notes || ''}<br/>
         </div>
 
         <hr style="border-top:1px dashed #000;">
 
         <strong>Items</strong><br/>
 
-        ${billData.map((item, i) => {
-
-        const fullQty = Number(item.fullPortion) || 0;
-        const halfQty = Number(item.halfPortion) || 0;
-
-
-        const fullPrice = Number(item.fullPrice) || Number(item.price) || 0;
-        const halfPrice = Number(item.halfPrice) || (Number(item.price) / 2) || 0;
-
-
-        const totalItemPrice = (fullQty * fullPrice) + (halfQty * halfPrice);
-
-        return `
-            <div style="display:flex; font-size:14px; justify-content:space-between;">
-                <span>${i + 1}. ${item.itemName} (${fullQty}F ${halfQty}H)</span>
-                <span>₹${totalItemPrice.toFixed(2)}</span>
-            </div>
-            `;
-    }).join('')}
+        ${itemsHtml}
 
         <hr style="border-top:1px dashed #000;">
 
@@ -827,6 +931,41 @@ function buildBillUI(billData) {
     `;
 
     $("#bill-content").html(billHtml);
+
+    // Fallback: if order-level fields are empty, try to extract from items
+    try {
+        if (!customerVal || !phoneVal || !addrVal) {
+            for (const it of itemsArray) {
+                if (!customerVal) customerVal = customerVal || it.customerName || it.customer || it.orderCustomer || '';
+                if (!phoneVal) phoneVal = phoneVal || it.phone || it.customerPhone || '';
+                if (!addrVal) addrVal = addrVal || it.address || it.addr || '';
+                if (customerVal && phoneVal && addrVal) break;
+            }
+        }
+    } catch (e) {
+        console.warn('fallback extraction failed', e);
+    }
+
+    // Prepare global canonical payload for thermal printing
+        try {
+        const thermalItems = itemsArray.map(item => ({ name: item.itemName || item.name || '-', quantity: (Number(item.fullPortion)||0) + (Number(item.halfPortion)||0) || Number(item.quantity)||1, price: Number(item.fullPrice||item.price||0) }));
+        window.currentBillData = {
+            orderId: orderIdVal,
+            customer: customerVal || '',
+            phone: phoneVal || '',
+            address: addrVal || '',
+            timestamp: dateValRaw,
+            items: thermalItems,
+            total: finalTotal,
+            discountAmount: discount
+        };
+        // debug log to help verify payload used for thermal printing
+        console.log('[Bill] prepared currentBillData:', window.currentBillData);
+    } catch (e) {
+        console.warn('prepare currentBillData failed', e);
+        window.currentBillData = null;
+    }
+
     $("#bill-modal").fadeIn(300);
 }
 
@@ -836,7 +975,7 @@ $(document).on('click', '.btn-view-bill', function () {
 
 
     $.ajax({
-        url: `/Home/GetBillData?orderId=${orderId}`,
+        url: `/Repository/GetBillData?orderId=${orderId}`,
         method: "GET",
         success: function (billResponse) {
             buildBillUI(billResponse);
@@ -963,9 +1102,11 @@ $(document).on("show.bs.modal", "#divInProgressModal", function () {
 // ========== Data Loading ==========
 function loadTableOrders() {
     $.ajax({
-        url: "/home/GetOrder",
+        url: "/Repository/GetOrder",
         type: "GET",
         success: function (data) {
+
+            console.log(data);
             window.liveOrdersData = data || [];
             filterCompletedOrdersToHistory();
 
@@ -1136,7 +1277,7 @@ function filterCompletedOrdersToHistory() {
 
 function loadTableCount() {
     $.ajax({
-        url: "/home/GetTableCount",
+        url: "/Repository/GetTableCount",
         type: "GET",
         success: function (data) {
             let count = typeof data === "object" ? data.count : parseInt(data);
@@ -1239,10 +1380,15 @@ function bindDynamicTable() {
             }
         }
 
-        tblhtml += `<div class="card text-white ${cardClass} m-3 card-click-animation" data-toggle="modal" data-target="#divInProgressModal">`;
-        tblhtml += `<div class="card-body"><center><h5 class="card-title">Table ${tbl}</h5>`;
+        tblhtml += `<div class="card text-white ${cardClass} m-3 card-click-animation" data-toggle="modal" data-target="#divInProgressModal" data-table="${tbl}">`;
+        tblhtml += `<div class="card-body table-card-body"><center><h5 class="card-title">Table ${tbl}</h5>`;
         tblhtml += `<div><strong>Total: ₹${totalPrice}</strong></div></center></div>`;
         tblhtml += `<div class="card-footer"><center><small>${statusText}</small></center></div>`;
+
+        // highlight selected table
+        try {
+            // nothing here, selection handled after DOM insert
+        } catch (e) { }
         tblhtml += `</div>`;
 
         if (i % 3 == 2) tblhtml += "</div></div>";
@@ -1253,8 +1399,37 @@ function bindDynamicTable() {
     }
 
     $("#divTable").html(tblhtml);
-
     renderOrderHistory();
+
+    // After rendering, attach click handler to select a table
+    $(document).off('click', '.card[data-table]').on('click', '.card[data-table]', function (e) {
+        var t = $(this).attr('data-table');
+        if (!t) return;
+        window.currentSelectedTableNo = parseInt(t);
+
+        // Highlight selection
+        $('.card[data-table]').removeClass('selected-table');
+        $(this).addClass('selected-table');
+
+        // show new order button
+        $('[id=newOrderBtn], .new-order-btn, #openNewOrder').show();
+
+        // open modal or update details
+        $('.modal-title').text('Table ' + t);
+        $('#divInProgressModal').modal('show');
+        updateOrderDetails('Table ' + t);
+        updateConfirmOrderBtn(parseInt(t));
+    });
+
+    // Ensure New Order button inside modal opens NewOrder page with selected table
+    $(document).off('click', '#openNewOrderForTable').on('click', '#openNewOrderForTable', function () {
+        const t = window.currentSelectedTableNo;
+        if (!t) { alert('No table selected'); return; }
+        // Open NewOrder route with table query and ensure NewOrder uses the table param
+        const url = '/Home/NewOrder?table=' + encodeURIComponent(t);
+        // Open in same window (modal will remain open until new page loads)
+        window.location.href = url;
+    });
 }
 
 // ========== History ==========
@@ -1310,12 +1485,13 @@ function renderOrderHistory() {
 
             const displayDate = getOrderDate(order)
                 ? new Date(getOrderDate(order)).toLocaleString("en-IN", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
                     hour: "2-digit",
                     minute: "2-digit",
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour12: true
+                    second: "2-digit",
+                    hour12: false
                 })
                 : "N/A";
 
@@ -1945,7 +2121,7 @@ function handleOnlinePaymentConfirm() {
 
     $("#confirmPayment").prop("disabled", true);
     $.ajax({
-        url: "/home/SaveOrderSummaryOnline",
+        url: "/Repository/SaveOrderSummaryOnline",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(summaryData),
@@ -2046,7 +2222,7 @@ function handleTablePaymentConfirm() {
     };
 
     $.ajax({
-        url: "/home/SaveOrderSummary",
+        url: "/Repository/SaveOrderSummary",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(summaryData),
@@ -2147,7 +2323,7 @@ function updateOrderQuantity(order, callback) {
     };
 
     $.ajax({
-        url: "/home/UpdateOrderItem",
+        url: "/Repository/UpdateOrderItem",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(payload),
@@ -2187,7 +2363,7 @@ function acceptOrder(order, callback) {
     };
 
     $.ajax({
-        url: "/home/UpdateOrderItem",
+        url: "/Repository/UpdateOrderItem",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(payload),
@@ -2382,7 +2558,7 @@ function completeOrder(order, callback) {
     };
 
     $.ajax({
-        url: "/home/UpdateOrderItem",
+        url: "/Repository/UpdateOrderItem",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(payload),
@@ -2446,7 +2622,7 @@ function completeTableOrder(order, callback) {
     };
 
     $.ajax({
-        url: "/home/UpdateTableOrderItem",
+        url: "/Repository/UpdateTableOrderItem",
         type: "POST",
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(payload),
@@ -2629,7 +2805,7 @@ function deleteOrder(id) {
 
             $.ajax({
 
-                url: '/home/SoftDeleteOrder',
+                url: '/Repository/SoftDeleteOrder',
 
                 type: 'POST',
 
@@ -2685,7 +2861,7 @@ function deleteOrder(id) {
 
         $.ajax({
 
-            url: '/Home/RejectOnlineOrder',
+            url: '/Repository/RejectOnlineOrder',
 
             type: 'POST',
 
@@ -2703,7 +2879,7 @@ function deleteOrder(id) {
 
                 renderOrders();
 
-                if (typeof updateNewOrdersBadge === 'function') updateNewOrdersBadge();
+                updateNewOrdersBadge();
 
                 showSuccessMessage(`Online order ${idStr} removed`);
 
@@ -2729,7 +2905,7 @@ function deleteOrder(id) {
 
     $.ajax({
 
-        url: '/home/SoftDeleteOrder',
+        url: '/Repository/SoftDeleteOrder',
 
         type: 'POST',
 
@@ -3271,6 +3447,7 @@ function updateNewOrdersBadge() {
 //                platform: 'zomato',
 //                customer: order.customer_name,
 //                phone: order.customer_phone,
+//                address: order.address,
 //                items: order.items.map(item => ({
 //                    name: item.dish_name,
 //                    quantity: item.quantity,
@@ -3383,7 +3560,7 @@ function updateOrderStatusOnPlatform(orderId, status, platform) {
 // UPDATE ZOMATO ORDER STATUS
 function updateZomatoOrderStatus(orderId, status) {
     $.ajax({
-        url: '/home/UpdateOrderItem',
+        url: '/Repository/UpdateOrderItem',
         method: 'PUT',
         headers: {
             'Authorization': 'Bearer YOUR_ZOMATO_API_KEY',
@@ -3443,7 +3620,7 @@ function updateRestaurantOrderStatus(orderId, status, staffId = null) {
     };
 
     $.ajax({
-        url: '/Home/UpdateOnlineStatus',
+        url: '/Repository/UpdateOnlineStatus',
         type: 'PUT',
         contentType: 'application/json',
         data: JSON.stringify(payload),
@@ -3476,7 +3653,7 @@ function RejectCoffeeOrder(orderId) {
         const order = ordersData[orderIndex];
 
         $.ajax({
-            url: "/Home/RejectCoffeeOrder",
+            url: "/Repository/RejectCoffeeOrder",
             type: "POST",
             contentType: "application/json; charset=utf-8",
             data: JSON.stringify(orderId),
@@ -3607,7 +3784,7 @@ function getOrdersFromRestaurant() {
 
 
     $.ajax({
-        url: "/home/GetOrderOnline",
+        url: "/Repository/GetOrderOnline",
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -3670,37 +3847,10 @@ function getOrdersFromRestaurant() {
     });
 }
 
-window.restaurantDashboard = {
-    viewOrderDetails,
-    updateOrderStatus,
-    filterOrders,
-    rejectOrder,
-    acceptCoffeeOrder,
-    deliverCoffeeOrder,
-    updateCoffeeOrderStatus
-};
-
-function mapCoffeeStatus(apiStatus) {
-
-    switch (apiStatus) {
-
-        case 'Order In Progress':
-            return 'new';
-
-        case 'Out for delivery':
-            return 'confirmed';
-
-        case 'Delivered':
-            return 'confirmed';
-
-        default:
-            return 'new';
-    }
-}
 function getOrdersFromCoffee() {
 
     $.ajax({
-        url: '/Home/GetCoffeeOrders',
+        url: '/Repository/GetCoffeeOrders',
         method: 'GET',
         contentType: 'application/json',
 
@@ -3720,21 +3870,18 @@ function getOrdersFromCoffee() {
                         phone: order.customerPhone || 'N/A',
                         items: [],
                         total: 0,
-                        status: mapCoffeeStatus(order.orderStatus),
+                        status: order.orderStatus,
                         timestamp: new Date(order.orderDate),
                         deliveryTime: '5-10 min',
-                        address: 'Pickup',
-                        specialInstructions: order.notes
+                        address: 'Pickup'
                     };
                 }
 
                 groupedOrders[order.orderNumber].items.push({
-
                     itemId: order.id,
                     name: order.coffeeName,
                     quantity: order.quantity,
                     price: order.price
-
                 });
 
                 groupedOrders[order.orderNumber].total += order.price * order.quantity;
@@ -3825,7 +3972,7 @@ function updateCoffeeOrderStatus(orderId, newStatus) {
 
     $.ajax({
 
-        url: '/Home/UpdateCoffeeOrderStatus',
+        url: '/Repository/UpdateCoffeeOrderStatus',
         method: 'POST',
         contentType: 'application/json; charset=utf-8',
         data: JSON.stringify(payload),
@@ -3909,7 +4056,7 @@ function printThermalBill(order) {
         })),
 
         Subtotal: Number(order.total) || 0,
-        Discount: Number(order.discountAmount || order.discount || 0),
+        Discount: Number(order.discountAmount) || 0,
         Total: Number(order.total) || 0,
 
         PrinterName: "Everycom-58-Series"
@@ -3967,9 +4114,9 @@ function printThermalBill(order) {
     function loadMenu() {
         setLoading(true);
         Promise.all([
-            fetch('/Home/GetMenuCategory').then(r => r.json()),
-            fetch('/Home/GetMenuSubcategory').then(r => r.json()),
-            fetch('/Home/GetMenuItem').then(r => r.json())
+            fetch('/GetMenuCategory').then(r => r.json()),
+            fetch('/GetMenuSubcategory').then(r => r.json()),
+            fetch('/GetMenuItem').then(r => r.json())
         ]).then(function ([cats, subs, items]) {
             _categories = Array.isArray(cats) ? cats : [];
             _subcats = Array.isArray(subs) ? subs : [];
@@ -4130,7 +4277,7 @@ function printThermalBill(order) {
     // ── Cart operations ────────────────────────────────────────────
     window.nomAddPortion = function (itemId, price, portion, e) {
         e && e.stopPropagation();
-        const item = _allItems.find(i => String(i.id || i.itemId || i.Id) === String(itemId));
+        const item = _allItems.find(i => String(i.id || i.itemId || i.ItemId) === String(itemId));
         if (!item) return;
 
         if (!_cart[itemId]) {
@@ -4207,13 +4354,67 @@ function printThermalBill(order) {
         document.getElementById('nomPlaceBtn').disabled = count === 0;
     }
 
-    // ── Search ─────────────────────────────────────────────────────
-    document.getElementById('nomSearch').addEventListener('input', function () {
-        if (_loaded) renderItems();
-    });
-
     // ── Place Order ────────────────────────────────────────────────
     window.placeNewOrder = function () {
+        const entries = Object.values(_cart).filter(e => e.full > 0 || e.half > 0);
+        if (entries.length === 0) return;
+
+        // Split each item into full-portion row and half-portion row separately
+        // so each DB row has a single unit price. home.js card = (full + half) * price.
+        const orderItems = [];
+        entries.forEach(function (entry) {
+            const itemId = Number(entry.item.id || entry.item.itemId || entry.item.Id);
+            const fullUnitPrice = Number(entry.fullPrice || entry.item.price || entry.item.Price || 0);
+            const halfUnitPrice = Number(entry.halfPrice || entry.item.price2 || Math.round(fullUnitPrice / 2) || 0);
+
+            if (entry.full > 0) {
+                orderItems.push({ item_id: itemId, full: entry.full, half: 0, Price: fullUnitPrice });
+            }
+            if (entry.half > 0) {
+                orderItems.push({ item_id: itemId, full: 0, half: entry.half, Price: halfUnitPrice });
+            }
+        });
+
+        const payload = {
+            selectedTable: parseInt(_tableNo),   
+            orderItems: orderItems,
+            customerName: document.getElementById('nomCustName').value.trim() || 'Walk-in',
+            userPhone: document.getElementById('nomCustPhone').value.trim() || '',
+            specialInstruction: document.getElementById('nomSpecialNote').value.trim() || 'No Instructions',
+            OrderType: 'dine',               // lowercase 'dine' matches GetOrder filter
+            paymentMode: 'Cash'
+        };
+
+        const btn = document.getElementById('nomPlaceBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="nom-spinner" style="width:18px;height:18px;border-width:2px;border-color:rgba(255,255,255,.3);border-top-color:#fff"></div> Placing…';
+        }
+
+        $.ajax({
+            url: '/Repository/SaveTableOrder',   // ← FIXED: was '/Repository/PlaceOrder' (404)
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            data: JSON.stringify(payload),
+            success: function () {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                }
+                showSuccessMessage('Order placed for Table ' + _tableNo + '!');
+                closeNewOrderModal();
+                if (typeof loadTableOrders === 'function') loadTableOrders();
+                if (typeof loadTableCount === 'function') loadTableCount();
+            },
+            error: function (xhr) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                }
+                alert('Failed to place order: ' + (xhr.responseText || 'Server error'));
+            }
+        });
+    }; window.placeNewOrder = function () {
         const entries = Object.values(_cart).filter(e => e.full > 0 || e.half > 0);
         if (entries.length === 0) return;
 
@@ -4235,17 +4436,21 @@ function printThermalBill(order) {
         };
 
         const btn = document.getElementById('nomPlaceBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<div class="nom-spinner" style="width:18px;height:18px;border-width:2px;border-color:rgba(255,255,255,.3);border-top-color:#fff"></div> Placing…';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="nom-spinner" style="width:18px;height:18px;border-width:2px;border-color:rgba(255,255,255,.3);border-top-color:#fff"></div> Placing…';
+        }
 
         $.ajax({
-            url: '/Home/PlaceOrder',
+            url: '/Repository/SaveTableOrder',
             type: 'POST',
             contentType: 'application/json; charset=utf-8',
             data: JSON.stringify(payload),
             success: function () {
-                btn.disabled = false;
-                btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                }
                 showSuccessMessage('Order placed for Table ' + _tableNo + '!');
                 closeNewOrderModal();
 
@@ -4253,22 +4458,47 @@ function printThermalBill(order) {
                 if (typeof loadTableCount === 'function') loadTableCount();
             },
             error: function (xhr) {
-                btn.disabled = false;
-                btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Place Order';
+                }
                 alert('Failed to place order: ' + (xhr.responseText || 'Server error'));
             }
         });
     };
 
     // Close on overlay click
-    document.getElementById('newOrderModal').addEventListener('click', function (e) {
-        if (e.target === this) closeNewOrderModal();
-    });
+    const _newOrderModal = document.getElementById('newOrderModal');
+    if (_newOrderModal) {
+        _newOrderModal.addEventListener('click', function (e) {
+            if (e.target === this) closeNewOrderModal();
+        });
+    }
 
     // Escape key
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && document.getElementById('newOrderModal').style.display !== 'none') {
-            closeNewOrderModal();
+        if (e.key === 'Escape') {
+            const _m = document.getElementById('newOrderModal');
+            if (_m && _m.style && _m.style.display !== 'none') {
+                closeNewOrderModal();
+            }
         }
     });
+
+    // Replace the direct call with a safe binder
+function bindNomSearch() {
+  const el = document.getElementById('nomSearch');
+  if (el) {
+    el.addEventListener('input', function () {
+      if (_loaded) renderItems();
+    });
+  }
+}
+
+// If DOM not ready, wait; otherwise bind now
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindNomSearch);
+} else {
+  bindNomSearch();
+}
 })();

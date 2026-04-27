@@ -266,6 +266,33 @@
     </div>
 </div>
 
+<div class="dash-stat">
+    <div class="dash-stat__icon" style="background:rgba(251,146,60,.12);color:#fb923c">
+        <i class="fas fa-truck"></i>
+    </div>
+    <div class="dash-stat__val" id="dsTotalVendors">—</div>
+    <div class="dash-stat__label">Total Vendors</div>
+    <div class="dash-stat__trend trend-up" id="dsActiveVendors">— active</div>
+</div>
+
+<div class="dash-stat">
+    <div class="dash-stat__icon" style="background:rgba(168,85,247,.12);color:#c084fc">
+        <i class="fas fa-file-invoice"></i>
+    </div>
+    <div class="dash-stat__val" id="dsTotalOrders">—</div>
+    <div class="dash-stat__label">Purchase Orders</div>
+    <div class="dash-stat__trend" id="dsPendingOrders" style="color:#f5a623">— pending</div>
+</div>
+
+<div class="dash-stat">
+    <div class="dash-stat__icon icon-red">
+        <i class="fas fa-exclamation-circle"></i>
+    </div>
+    <div class="dash-stat__val" id="dsOutstanding">—</div>
+    <div class="dash-stat__label">Outstanding</div>
+    <div class="dash-stat__trend" style="color:var(--gns-text-muted)">Unpaid Balance</div>
+</div>
+
 <!-- ── Charts ────────────────────────────────────────────────── -->
 <div class="dash-charts">
     <!-- Line Chart — last 7 days expenses -->
@@ -351,6 +378,33 @@
                         <th>Phone</th>
                         <th>Salary</th>
                         <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- ── Vendor Ledger ────────────────────────────────────── -->
+<div class="gns-card" style="margin-top:20px">
+    <div class="gns-card__header">
+        <h2 class="gns-card__title">
+            <i class="fas fa-truck mr-2" style="color:var(--gns-accent)"></i>Vendor Ledger
+        </h2>
+        <a asp-controller="Vendors" asp-action="Index"
+               class="btn-gns btn-gns-ghost" style="padding:5px 12px;font-size:.78rem">
+            Manage Vendors
+        </a>
+    </div>
+    <div class="gns-card__body" style="padding:0">
+        <div class="table-responsive">
+            <table class="table recent-table dataTable" id="dashVendorLedger" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Vendor</th>
+                        <th>Total Ordered</th>
+                        <th>Total Paid</th>
+                        <th>Outstanding</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -605,6 +659,43 @@
                 success: data => { dailyData = data || []; checkAllLoaded(); },
                 error: ()    => { dailyData = [];          checkAllLoaded(); }
             });
+
+        $.ajax({
+        url: '/Vendors/GetDashboardStats', method: 'GET',
+        success: function (data) {
+        const s = typeof data === 'string' ? JSON.parse(data) : data;
+        $('#dsTotalVendors').text(s.totalVendors);
+        $('#dsActiveVendors').text(s.activeVendors + ' active');
+        $('#dsTotalOrders').text(s.totalOrders);
+        $('#dsPendingOrders').text(s.pendingOrders + ' pending');
+        $('#dsOutstanding').text('Rs ' + Number(s.totalOutstanding).toLocaleString());
+        }
+        });
+
+
+        $.ajax({
+        url: '/Vendors/GetLedger', method: 'GET',
+        success: function (data) {
+        const ledger = typeof data === 'string' ? JSON.parse(data) : data;
+        const Rs = v => 'Rs ' + Number(v).toLocaleString();
+
+        if ($.fn.DataTable.isDataTable('#dashVendorLedger'))
+        $('#dashVendorLedger').DataTable().destroy();
+
+        $('#dashVendorLedger').DataTable({
+        data: ledger, destroy: true, pageLength: 5,
+        columns: [
+        { data: 'vendorName' },
+        { data: 'totalOrdered',   render: v => `<span style="color:var(--gns-accent);font-weight:700">${Rs(v)}</span>` },
+        { data: 'totalPaid',      render: v => `<span style="color:#22c55e">${Rs(v)}</span>` },
+        { data: 'totalRemaining', render: v => v > 0
+        ? `<span style="color:#ef4444;font-weight:700">${Rs(v)}</span>`
+        : `<span style="color:#22c55e">✓ Clear</span>` }
+        ]
+        });
+        }
+        });
+
 
         });
     </script>

@@ -1,24 +1,16 @@
-﻿/* ════════════════════════════════════════════════════════════
-   GRILL N SHAKES — NEW ORDER POS
-   wwwroot/js/NewOrder.js
-
-   EXACT API FIELD NAMES (confirmed from live data):
-   ─────────────────────────────────────────────────
-   Categories   : categoryId, categoryName
-   Subcategories: subcategoryId, categoryId, subcategoryName
-   Items        : itemId, subcategoryId, itemName,
-                  price1 (full), price2 (half, 0 = unavailable),
-                  imageSrc (base64 string), isActive
-════════════════════════════════════════════════════════════ */
+﻿
 
 /* ── API Endpoints ── */
 var API = {
-    cats: '/Home/GetMenuCategory',
-    subs: '/Home/GetMenuSubcategory',
-    items: '/Home/GetMenuItem',
-    save: '/Home/SaveTableOrder',
-    tables: '/Home/GetTableCount',
+    cats: '/Repository/GetMenuCategory',
+    subs: '/Repository/GetMenuSubcategory',
+    items: '/Repository/GetMenuItem',
+    save: '/Repository/SaveTableOrder',
+    tables: '/Repository/GetTableCount',
 };
+
+// Use server-provided user identifier when available to ensure orders originate from dashboard
+const APP_USER = (window && window.__APP_USER__) ? window.__APP_USER__ : 2;
 
 var TAX = 0.05;
 
@@ -32,7 +24,8 @@ var _cart = {};   // itemId → { fq, hq, note, name, fp, hp }
 
 var _activeCat = null;
 var _activeSC = null;
-var _otype = 'DineIn';
+// Default to Table so dashboard opens in table mode by default
+var _otype = 'Table';
 var _dmode = 'none', _dpct = 0, _damt = 0;
 var _pm = 'Cash';
 
@@ -123,6 +116,24 @@ $(document).ready(function () {
     /* Load table list separately */
     _loadTables();
 
+    // If opened with ?table= query param, remember it so _loadTables can set selection
+    try {
+        var urlParams = new URLSearchParams(window.location.search);
+        window.__initialTableParam = urlParams.get('table');
+        // If provided, ensure NewOrder locks the table selection and switches to Table order type
+        if (window.__initialTableParam) {
+            try { $('#noTableSel').val(parseInt(window.__initialTableParam)); } catch (e) { }
+            // Force order type to Table
+            _otype = 'Table';
+            $('.no-type-tab').removeClass('active');
+            $('.no-type-tab[data-ot="Table"]').addClass('active');
+            // Disable manual change of table selection
+            $(document).ready(function () {
+                $('#noTableSel').prop('disabled', true);
+            });
+        }
+    } catch (e) { window.__initialTableParam = null; }
+
     /* Keyboard close */
     $(document).on('keydown', function (e) {
         if (e.key === 'Escape') {
@@ -159,28 +170,47 @@ function _loadTables() {
         dataType: 'json',
         success: function (data) {
             var $sel = $('#noTableSel').empty();
-            var arr = $.isArray(data) ? data : [];
-            if (arr.length) {
-                $.each(arr, function (_, t) {
+
+            // Handle plain number response (e.g., 5) from GetTableCount
+            if ($.isArray(data) && data.length) {
+                $.each(data, function (_, t) {
                     var no = t.tableNumber || t.table_number || t.tableNo || t.table_no || t;
                     $sel.append($('<option>').val(no).text('Table ' + no));
                 });
-            } else {
-                var cnt = data.tableCount || data.TableCount || 20;
-                for (var i = 1; i <= cnt; i++) {
-                    $sel.append($('<option>').val(i).text('Table ' + i));
-                }
+                return;
             }
+
+            var cnt = 0;
+            if (typeof data === 'number') {
+                cnt = data;
+            } else if (data && typeof data === 'object') {
+                cnt = data.count || data.tableCount || data.TableCount || 0;
+            }
+            if (cnt <= 0) cnt = 20; // safe fallback
+
+            for (var i = 1; i <= cnt; i++) {
+                $sel.append($('<option>').val(i).text('Table ' + i));
+            }
+
+            // If initial table specified in query, set it
+            try {
+                if (window.__initialTableParam) {
+                    var tval = parseInt(window.__initialTableParam);
+                    if (!isNaN(tval)) $sel.val(tval);
+                }
+            } catch (e) { }
         },
         error: function () {
             var $sel = $('#noTableSel').empty();
             for (var i = 1; i <= 20; i++) {
                 $sel.append($('<option>').val(i).text('Table ' + i));
             }
+            try {
+                if (window.__initialTableParam) $('#noTableSel').val(parseInt(window.__initialTableParam));
+            } catch (e) { }
         }
     });
 }
-
 
 function _initSkeletons() {
     var cats = '';
@@ -365,7 +395,7 @@ function detailAdd() {
     closeDetail();
     renderGrid();
     renderCart();
-    toast(_dItem.name + ' added!', 'success');
+    //toast(_dItem.name + ' added!', 'success');
 }
 
 function closeDetail() {
@@ -412,14 +442,24 @@ function renderCart() {
             var id = pair[0], e = pair[1];
             var total = (e.fq * e.fp) + (e.hq * (e.hp || e.fp / 2));
 
+            // Show full and half portions separately to avoid confusion
             html += '<div class="no-crow">' +
                 '<div class="no-crow-name">' + e.name +
                 (e.note ? '<div class="no-crow-code" title="' + e.note + '">' + e.note + '</div>' : '') +
                 '</div>' +
                 '<div class="no-crow-qty">' +
-                '<button class="no-cqb" onclick="cartChg(' + id + ',\'fq\',-1)">&#8722;</button>' +
-                '<span class="no-cqv">' + (e.fq + e.hq) + '</span>' +
-                '<button class="no-cqb" onclick="cartAdd(' + id + ')">+</button>' +
+                '<div class="no-portion-row">' +
+                    '<span class="no-portion-label">F:</span>' +
+                    '<button class="no-cqb" onclick="cartChg(' + id + ',\'fq\',-1)">&#8722;</button>' +
+                    '<span class="no-iqv">' + e.fq + '</span>' +
+                    '<button class="no-cqb" onclick="cartAdd(' + id + ',\'fq\')">+</button>' +
+                '</div>' +
+                '<div class="no-portion-row">' +
+                    '<span class="no-portion-label">H:</span>' +
+                    '<button class="no-cqb" onclick="cartChg(' + id + ',\'hq\',-1)">&#8722;</button>' +
+                    '<span class="no-iqv">' + e.hq + '</span>' +
+                    '<button class="no-cqb" onclick="cartAdd(' + id + ',\'hq\')">+</button>' +
+                '</div>' +
                 '</div>' +
                 '<div class="no-crow-price">&#8377;' + total.toFixed(2) + '</div>' +
                 '<button class="no-cdel" onclick="cartDel(' + id + ')"><i class="fas fa-xmark"></i></button>' +
@@ -450,8 +490,11 @@ function cartChg(id, type, d) {
     renderCart();
 }
 function cartAdd(id) {
+    // support adding either full or half via second arg
+    var portion = 'fq';
+    if (arguments.length > 1 && (arguments[1] === 'hq' || arguments[1] === 'fq')) portion = arguments[1];
     if (!_cart[id]) return;
-    _cart[id].fq++;
+    _cart[id][portion]++;
     renderGrid();
     renderCart();
 }
@@ -538,16 +581,17 @@ function selectPM(el) {
     _pm = $(el).data('mode');
 }
 
-/* ════════════════════════════════════════════════════════════
-   SNAPSHOT + VALIDATE
-════════════════════════════════════════════════════════════ */
+
 function snap() {
     var sub = _sub(), disc = 0;
     if (_dmode === 'comp') disc = sub;
     else if (_dmode === 'pct') disc = sub * _dpct / 100;
     else if (_dmode === 'amt') disc = Math.min(_damt, sub);
     var after = sub - disc, tax = after * TAX, grand = Math.round(after + tax);
-    var tno = _otype === 'Table' ? parseInt($('#noTableSel').val()) || '' : '';
+
+    // Only set tableNo when type is 'Table' and a valid table is selected
+    var tno = _otype === 'Table' ? (parseInt($('#noTableSel').val()) || null) : null;
+
     var lines = [];
     $.each(_cart, function (id, e) {
         lines.push({
@@ -555,7 +599,8 @@ function snap() {
             itemName: e.name,
             fullPortion: e.fq,
             halfPortion: e.hq,
-            price: (e.fq * e.fp) + (e.hq * (e.hp || e.fp / 2)),
+            unitFullPrice: e.fp,                        
+            unitHalfPrice: e.hp || Math.round(e.fp / 2), 
             specialNote: e.note || '',
         });
     });
@@ -577,7 +622,16 @@ function snap() {
 
 function validate() {
     $('#noCustName, #noCustPhone').removeClass('err');
-    if (_otype === 'Table') return true;
+
+    if (_otype === 'Table') {
+        var tableVal = parseInt($('#noTableSel').val());
+        if (!tableVal || tableVal <= 0) {
+            toast('Please select a valid table number', 'error');
+            return false;
+        }
+        return true;
+    }
+
     var ok = true;
     if (!$('#noCustName').val().trim()) { $('#noCustName').addClass('err'); ok = false; }
     if (!$('#noCustPhone').val().trim()) { $('#noCustPhone').addClass('err'); ok = false; }
@@ -585,9 +639,7 @@ function validate() {
     return ok;
 }
 
-/* ════════════════════════════════════════════════════════════
-   ACTIONS
-════════════════════════════════════════════════════════════ */
+
 function noKOT(andPrint) {
     if (!Object.keys(_cart).length) return;
     var s = snap();
@@ -604,6 +656,14 @@ function noSave(andPrint) {
     $('#noBillModal').addClass('open');
     if (andPrint) setTimeout(function () { printZone('noBillPrint'); }, 300);
     postOrder(s);
+
+    // If opened from Table modal via query param, close and return to table view
+    try {
+        if (window.__initialTableParam) {
+            // After successful post (server response), navigate back to home table service
+            setTimeout(function () { window.location.href = '/Home/Index'; }, 600);
+        }
+    } catch (e) { }
 }
 
 function noPlace() {
@@ -622,45 +682,69 @@ function doneBill(mid) {
     toast('Order saved! &#10003;', 'success');
 }
 
-/* ── POST ORDER via jQuery AJAX ── */
-function postOrder(s) {
-    var token = localStorage.getItem('authToken') || '';
 
+function postOrder(s) {
     var notes = $.map(s.lines, function (l) {
         return l.specialNote ? l.itemName + ': ' + l.specialNote : null;
     }).join('; ');
 
+    // Map order type to lowercase DB value
     var orderType = s.orderType === 'DineIn' ? 'dine'
         : s.orderType === 'Delivery' ? 'delivery'
             : s.orderType === 'PickUp' ? 'pickup'
-                : s.orderType;
+                : s.orderType === 'Table' ? 'dine'  
+                    : 'dine';
+
+    var orderItems = [];
+    $.each(s.lines, function (_, l) {
+        if (l.fullPortion > 0) {
+            orderItems.push({
+                item_id: l.itemId,
+                full: l.fullPortion,
+                half: 0,
+                Price: l.unitFullPrice   
+            });
+        }
+        if (l.halfPortion > 0) {
+            orderItems.push({
+                item_id: l.itemId,
+                full: 0,
+                half: l.halfPortion,
+                Price: l.unitHalfPrice  
+            });
+        }
+    });
 
     var payload = {
-        selectedTable: s.tableNo || null,       
-        userId: 2,                        
-        customerName: s.customerName || '',     
-        userPhone: s.phone || '',            
-        Address: s.address || '',
-        OrderType: orderType || '',
-        specialInstruction: notes || '',
-        orderItems: $.map(s.lines, function (l) {    
-            return {
-                item_id: l.itemId,
-                full: l.fullPortion,          
-                half: l.halfPortion,          
-                Price: l.price
-            };
-        })
+        selectedTable: s.tableNo ? parseInt(s.tableNo) : null,
+        userName: APP_USER,
+        customerName: s.customerName || '',
+        userPhone: s.phone || '',
+        Address: s.address || null,
+        OrderType: orderType,
+        paymentMode: s.payMode || 'Cash',
+        specialInstruction: notes || 'No Instructions',
+        orderItems: orderItems
     };
 
     $.ajax({
-        url: API.save,
+        url: API.save, 
         type: 'POST',
         contentType: 'application/json',
-        headers: { 'Authorization': 'Bearer ' + token },
         data: JSON.stringify(payload),
         success: function () {
-            console.log('[GNS] Order saved OK');
+            console.log('[GNS] Order saved OK — table:', s.tableNo, 'type:', orderType);
+            // If this order was created for a table via query param, close the NewOrder page and go back
+            try {
+                if (window.__initialTableParam) {
+                    // Give a short delay for user feedback then navigate back to home (table service)
+                    setTimeout(function () { window.location.href = '/Home/Index'; }, 300);
+                } else {
+                    // Otherwise, if running as a modal in same page, refresh table orders
+                    if (typeof loadTableOrders === 'function') loadTableOrders();
+                    if (typeof loadTableCount === 'function') loadTableCount();
+                }
+            } catch (e) { }
         },
         error: function (xhr, status, err) {
             console.error('[GNS] Post error:', xhr.status, err, xhr.responseText);
@@ -672,9 +756,7 @@ function postOrder(s) {
     });
 }
 
-/* ════════════════════════════════════════════════════════════
-   RECEIPT BUILDERS
-════════════════════════════════════════════════════════════ */
+
 function _orderTypeBadge(otype, tno) {
     if (otype === 'Delivery') return '&#128757; DELIVERY';
     if (otype === 'PickUp') return '&#128717; PICK UP';
@@ -744,9 +826,6 @@ function buildBill(s) {
         '</div><div class="rftr">Thank you! &#127869; Grill N Shakes</div></div>';
 }
 
-/* ════════════════════════════════════════════════════════════
-   PRINT
-════════════════════════════════════════════════════════════ */
 function printZone(zoneId) {
     var html = $('#' + zoneId).html();
     var win = window.open('', '', 'width=420,height=680');
@@ -770,9 +849,6 @@ function printZone(zoneId) {
     setTimeout(function () { win.print(); win.close(); }, 400);
 }
 
-/* ════════════════════════════════════════════════════════════
-   TOAST
-════════════════════════════════════════════════════════════ */
 function toast(msg, type) {
     var colors = { success: '#27ae60', error: '#c0392b', info: '#2980b9' };
     var $t = $('#noToast');

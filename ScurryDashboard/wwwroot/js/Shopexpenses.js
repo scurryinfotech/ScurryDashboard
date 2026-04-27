@@ -13,7 +13,7 @@ $(function () {
     };
 
     function initTable(data) {
-        debugger
+        
         if (dt) dt.destroy();
         dt = $('#shopExpTable').DataTable({
             data, destroy: true, pageLength: 10, order: [[0, 'desc']],
@@ -73,7 +73,8 @@ $(function () {
         $('#seModalTitle').text('Add Shop Expense');
         $('#seTitle,#seCategory,#seAmount,#seDesc').val('');
         $('#seDate').val('');
-        $('#sePaymentMode').val('Cash');
+        // default to second payment mode (Online)
+        $('#sePaymentMode').val('Online');
         $('#seIsActive').val('true');
         $('#shopExpModal').modal('show');
     });
@@ -102,14 +103,15 @@ $(function () {
         if (!t) { gnsToast('Title required.', 'error'); return; }
         if (!a) { gnsToast('Amount required.', 'error'); return; }
         if (!d) { gnsToast('Date required.', 'error'); return; }
-        debugger
+        
         const payload = {
             expenseId: parseInt($('#seId').val()) || 0,
             title: t,
             category: $('#seCategory').val() || null,
             amount: parseFloat(a),
             expenseDate: d,
-            paymentMode: $('#dePaymentMode').val() || 'Cash',
+            paymentMode: $('#sePaymentMode').val() || 'Online',
+            createdBy: null,
             description: $('#seDesc').val() || null,
             isActive: $('#seIsActive').val() === 'true',
             modifiedBy: 'Admin'

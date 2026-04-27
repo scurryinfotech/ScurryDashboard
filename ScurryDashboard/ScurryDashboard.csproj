@@ -28,8 +28,25 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="grillnshakes.db" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="grillnshakes.db">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="wwwroot\cdn\webfonts\" />
     <Folder Include="wwwroot\sound\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.29.0" />
+    <PackageReference Include="Twilio" Version="5.98.1" />
   </ItemGroup>
 
 </Project>

@@ -12,6 +12,7 @@
         public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; } = false;
         public DateTime CreatedAt { get; set; }
+        public int? CreatedBy { get; set; }
         public DateTime? ModifiedAt { get; set; }
         public string? ModifiedBy { get; set; }
     }

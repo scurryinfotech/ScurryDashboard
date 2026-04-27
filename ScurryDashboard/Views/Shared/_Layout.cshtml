@@ -42,6 +42,24 @@
 
             <div class="gns-sidebar__section-label">Management</div>
 
+            <!-- Add under MANAGEMENT section in your sidebar nav -->
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Vendors" ? "active" : "")"
+                   asp-controller="Vendors" asp-action="Index">
+                <i class="fas fa-truck"></i><span>Vendors</span>
+            </a>
+
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "PurchaseOrders" ? "active" : "")"
+                   asp-controller="PurchaseOrders" asp-action="Index">
+                <i class="fas fa-file-invoice"></i><span>Purchase Orders</span>
+            </a>
+
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "VendorPayments" ? "active" : "")"
+                   asp-controller="VendorPayments" asp-action="Index">
+                <i class="fas fa-history"></i><span>Payment History</span>
+            </a>
+
+
+
             <a class="gns-sidebar__link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Staff" ? "active" : "")"
                    asp-controller="Staff" asp-action="Index">
                 <i class="fas fa-users"></i><span>Staff</span>
@@ -69,9 +87,14 @@
                 <i class="fas fa-utensils"></i><span>Manage Menu</span>
             </a>
 
-            <div class="gns-sidebar__section-label">Quick Actions</div>
+            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "History" && ViewContext.RouteData.Values["controller"]?.ToString() == "Repository" ? "active" : "")"
+                   asp-controller="Repository" asp-action="History">
+                <i class="fas fa-history"></i><span>Order History</span>
+            </a>
 
-            <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "TableManager" ? "active" : "")"
+            @* <div class="gns-sidebar__section-label">Quick Actions</div> *@
+
+          @*   <a class="gns-sidebar__link @(ViewContext.RouteData.Values["action"]?.ToString() == "TableManager" ? "active" : "")"
                    asp-controller="Home" asp-action="TableManager">
                 <i class="fas fa-table-cells-large" style="color:#e67e22"></i>
                 <span>Table Manager</span>
@@ -87,11 +110,11 @@
                    asp-controller="Home" asp-action="PhoneOrder">
                 <i class="fas fa-phone-volume" style="color:#e67e22"></i>
                 <span>Phone Order</span>
-            </a>
+            </a> *@
 
         </nav>
 
-        <div class="gns-sidebar__footer">
+        <div class="gns-sidebar__footer d-none">
             <div class="gns-sidebar__user">
                 <div class="gns-sidebar__avatar">GN</div>
                 <div>
@@ -113,7 +136,7 @@
             </div>
             <div class="gns-topbar__actions">
 
-                <!-- Table Manager button -->
+                @* <!-- Table Manager button -->
                 <a asp-controller="Home" asp-action="TableManager"
                        style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#e67e22,#d35400);color:#fff;border:none;border-radius:7px;padding:7px 15px;font-size:.8rem;font-weight:800;text-decoration:none;box-shadow:0 3px 10px rgba(230,126,34,.35);">
                     <i class="fas fa-table-cells-large"></i> Tables
@@ -129,7 +152,7 @@
                 <a asp-controller="Home" asp-action="PhoneOrder"
                        style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#d35400,#e67e22);color:#fff;border:none;border-radius:7px;padding:7px 15px;font-size:.8rem;font-weight:800;text-decoration:none;box-shadow:0 3px 10px rgba(211,84,0,.3);">
                     <i class="fas fa-phone-volume"></i> Phone Order
-                </a>
+                </a> *@
 
                 <!-- Home Delivery -->
                 <button id="HomeBtn" class="gns-delivery-btn" data-state="disconnected"

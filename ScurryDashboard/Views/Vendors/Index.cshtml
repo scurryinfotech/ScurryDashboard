@@ -1,0 +1,206 @@
+﻿@{
+    ViewData["Title"] = "Vendors";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+<style>
+    .vendor-badge-active   { background:rgba(34,197,94,.15);  color:#22c55e; padding:3px 10px; border-radius:99px; font-size:.72rem; font-weight:600; }
+    .vendor-badge-inactive { background:rgba(239,68,68,.12);  color:#ef4444; padding:3px 10px; border-radius:99px; font-size:.72rem; font-weight:600; }
+</style>
+}
+
+<!-- Header -->
+<div class="dash-welcome" style="margin-bottom:20px">
+    <div>
+        <h1 class="dash-welcome__title">Vendors <i class="fas fa-truck" style="color:var(--gns-accent)"></i></h1>
+        <p class="dash-welcome__sub">Manage your suppliers and vendors</p>
+    </div>
+    <button class="btn-gns" onclick="openVendorModal()">
+        <i class="fas fa-plus mr-1"></i> Add Vendor
+    </button>
+</div>
+
+<!-- Table -->
+<div class="gns-card">
+    <div class="gns-card__body" style="padding:0">
+        <div class="table-responsive">
+            <table class="table dataTable" id="vendorTable" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Vendor Name</th>
+                        <th>Contact Person</th>
+                        <th>Phone</th>
+                        <th>CNIC</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="vendorModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background:var(--gns-surface);border:1px solid var(--gns-border);border-radius:var(--gns-radius)">
+            <div class="modal-header" style="border-bottom:1px solid var(--gns-border)">
+                <h5 class="modal-title" style="font-family:Syne,sans-serif;font-weight:700;color:var(--gns-text)" id="vendorModalTitle">Add Vendor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="vVendorId" value="0">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Vendor Name *</label>
+                        <input type="text" id="vVendorName" class="form-control gns-input" placeholder="Vendor Name">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Contact Person</label>
+                        <input type="text" id="vContactPerson" class="form-control gns-input" placeholder="Contact Person">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Phone</label>
+                        <input type="text" id="vPhone" class="form-control gns-input" placeholder="Phone">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Email</label>
+                        <input type="email" id="vEmail" class="form-control gns-input" placeholder="Email">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">CNIC</label>
+                        <input type="text" id="vCNIC" class="form-control gns-input" placeholder="CNIC">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Status</label>
+                        <select id="vIsActive" class="form-select gns-input">
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" style="color:var(--gns-text-muted);font-size:.8rem">Address</label>
+                        <textarea id="vAddress" class="form-control gns-input" rows="2" placeholder="Address"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--gns-border)">
+                <button type="button" class="btn-gns btn-gns-ghost" data-bs-dismiss="modal">
+    Cancel
+</button>
+                <button class="btn-gns" onclick="saveVendor()"><i class="fas fa-save mr-1"></i> Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(function () {
+    loadVendors();
+});
+
+function loadVendors() {
+    $.get('/Vendors/GetAll', function (data) {
+        const list = typeof data === 'string' ? JSON.parse(data) : data;
+
+        if ($.fn.DataTable.isDataTable('#vendorTable'))
+            $('#vendorTable').DataTable().destroy();
+
+        $('#vendorTable').DataTable({
+            data: list,
+            destroy: true,
+            pageLength: 10,
+            order: [[0, 'desc']],
+            columns: [
+                { data: 'vendorId' },
+                { data: 'vendorName' },
+                { data: 'contactPerson', defaultContent: '—' },
+                { data: 'phone',         defaultContent: '—' },
+                { data: 'cnic',          defaultContent: '—' },
+                { data: 'isActive',
+                  render: v => v
+                    ? '<span class="vendor-badge-active">Active</span>'
+                    : '<span class="vendor-badge-inactive">Inactive</span>' },
+                { data: 'vendorId', orderable: false,
+                  render: id => `
+                    <div style="display:flex;gap:6px">
+                      <button class="btn-gns btn-gns-ghost" style="padding:4px 10px;font-size:.75rem" onclick="editVendor(${id})">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <a href="/PurchaseOrders/Index?vendorId=${id}" class="btn-gns btn-gns-ghost" style="padding:4px 10px;font-size:.75rem">
+                        <i class="fas fa-file-invoice"></i>
+                      </a>
+                      <button class="btn-gns" style="padding:4px 10px;font-size:.75rem;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)" onclick="deleteVendor(${id})">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>` }
+            ]
+        });
+    });
+}
+
+function openVendorModal() {
+    $('#vVendorId').val(0);
+    $('#vVendorName,#vContactPerson,#vPhone,#vEmail,#vCNIC,#vAddress').val('');
+    $('#vIsActive').val('true');
+    $('#vendorModalTitle').text('Add Vendor');
+    $('#vendorModal').modal('show');
+}
+
+function editVendor(id) {
+    $.get('/Vendors/GetById?id=' + id, function (data) {
+        const v = typeof data === 'string' ? JSON.parse(data) : data;
+        $('#vVendorId').val(v.vendorId);
+        $('#vVendorName').val(v.vendorName);
+        $('#vContactPerson').val(v.contactPerson);
+        $('#vPhone').val(v.phone);
+        $('#vEmail').val(v.email);
+        $('#vCNIC').val(v.cnic);
+        $('#vAddress').val(v.address);
+        $('#vIsActive').val(String(v.isActive));
+        $('#vendorModalTitle').text('Edit Vendor');
+        $('#vendorModal').modal('show');
+    });
+}
+
+function saveVendor() {
+    const name = $('#vVendorName').val().trim();
+    if (!name) { alert('Vendor name is required.'); return; }
+
+    const model = {
+        vendorId:      parseInt($('#vVendorId').val()),
+        vendorName:    name,
+        contactPerson: $('#vContactPerson').val(),
+        phone:         $('#vPhone').val(),
+        email:         $('#vEmail').val(),
+        cnic:          $('#vCNIC').val(),
+        address:       $('#vAddress').val(),
+        isActive:      $('#vIsActive').val() === 'true',
+        modifiedBy:    'Admin'
+    };
+
+    $.ajax({
+        url: '/Vendors/Save', method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(model),
+        success: () => {
+            $('#vendorModal').modal('hide');
+            loadVendors();
+        },
+        error: (xhr) => alert('Error: ' + xhr.responseText)
+    });
+}
+
+function deleteVendor(id) {
+    if (!confirm('Delete this vendor? This cannot be undone.')) return;
+    $.ajax({
+        url: '/Vendors/Delete?id=' + id, method: 'DELETE',
+        success: () => loadVendors(),
+        error: (xhr) => alert('Error: ' + xhr.responseText)
+    });
+}
+</script> }
