@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Remove="Views\Home\SignUp.cshtml" />
+    <Content Remove="Views\SignUp.cshtml" />
     <Content Remove="wwwroot\css\StyleSheet.css" />
     <Content Remove="wwwroot\sound\alarm.mp3.mp3" />
   </ItemGroup>

@@ -45,16 +45,16 @@
     </div>
 </div>
 
-<!-- Bill modal (reused by home.js handlers) -->
-<div id="bill-modal" class="" style="display:none;">
+<!-- Bill Modal Overlay -->
+<div id="bill-modal" class="hidden">
     <div class="modal-content">
         <div class="modal-header">
             <h5 class="modal-title">Bill</h5>
-            <button class="close-btn" onclick="$('#bill-modal').hide();">×</button>
+            <button class="close-btn" id="btnCloseBill">×</button>
         </div>
         <div id="bill-content"></div>
         <div class="modal-actions">
-            <button class="btn btn-secondary" onclick="$('#bill-modal').hide();">Close</button>
+            <button class="btn btn-secondary" id="btnCloseBill2">Close</button>
             <button class="btn btn-primary" onclick="printBill();">Print</button>
             <button class="btn btn-success" id="btnThermalPrint">Thermal Print</button>
         </div>
