@@ -418,17 +418,29 @@ namespace OrderService.Repository.Service
 
 
 
-        public async Task<bool> SoftDeleteOrder(int itemId)
+        public async Task<bool> SoftDeleteOrder(int itemId, string reason)
         {
             try
             {
                 await using var con = await SQLiteHelper.OpenAsync(_sqliteCs);
+
                 var cmd = SQLiteHelper.Query(con,
-                    "UPDATE Orders SET IsActive = 0, OrderStatus = 5 WHERE Id = @ItemId");
+                    @"UPDATE Orders 
+              SET IsActive = 0, 
+                  OrderStatus = 5,
+                  DeleteReason = @Reason
+              WHERE Id = @ItemId");
+
                 cmd.Parameters.AddWithValue("@ItemId", itemId);
+                cmd.Parameters.AddWithValue("@Reason", reason);
+
                 return await cmd.ExecuteNonQueryAsync() > 0;
             }
-            catch (Exception ex) { Console.WriteLine("SoftDeleteOrder Error: " + ex.Message); return false; }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SoftDeleteOrder Error: " + ex.Message);
+                return false;
+            }
         }
 
         public async Task<bool> RejectOnlineOrder(string orderId)

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OrderService.Repository.Interface;
 using ScurryDashboard.Models;
-using OrderService.Model;
+using ScurryDashboard.Model;
 using System.Text.Json;
 
 namespace ScurryDashboard.Controllers
@@ -182,17 +182,27 @@ namespace ScurryDashboard.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> SoftDeleteOrder([FromBody] int id)
+        public async Task<IActionResult> SoftDeleteOrder([FromBody] DeleteOrderRequest request)
         {
             try
             {
-                var ok = await _orderRepository.SoftDeleteOrder(id);
-                if (ok) return Ok();
+                // Basic validation
+                if (request == null || request.Id <= 0)
+                    return BadRequest("Invalid request");
+
+                if (string.IsNullOrWhiteSpace(request.Reason))
+                    return BadRequest("Reason is required");
+
+                var ok = await _orderRepository.SoftDeleteOrder(request.Id, request.Reason);
+
+                if (ok)
+                    return Ok(new { message = "Order deleted successfully" });
+
                 return StatusCode(500, "Failed to soft delete order");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error soft deleting order");
+                _logger.LogError(ex, $"Error soft deleting order with Id {request?.Id}");
                 return StatusCode(500, "Error soft deleting order");
             }
         }

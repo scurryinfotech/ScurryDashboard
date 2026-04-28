@@ -510,20 +510,27 @@ namespace OrderService.Repository.Service
             return flag;
         }
 
-        public async Task<bool> SoftDeleteOrder(int itemId)
+        public async Task<bool> SoftDeleteOrder(int itemId, string reason)
         {
             bool flag = false;
 
             try
             {
                 connection();
-                SqlCommand cmd = new SqlCommand("sp_SoftDeleteOrder", con);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@ItemId", itemId);
-                int i = await cmd.ExecuteNonQueryAsync();
-                if (i > 0)
+
+                using (SqlCommand cmd = new SqlCommand("sp_SoftDeleteOrder", con))
                 {
-                    flag = true;
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    cmd.Parameters.AddWithValue("@ItemId", itemId);
+                    cmd.Parameters.AddWithValue("@Reason", reason ?? "");
+
+                    int i = await cmd.ExecuteNonQueryAsync();
+
+                    if (i > 0)
+                    {
+                        flag = true;
+                    }
                 }
             }
             catch (Exception ex)
