@@ -13,7 +13,7 @@ namespace OrderService.Repository.Interface
         Task<bool> AddOrder(OrderModel order);
         Task<Tuple<bool, string,int>> IsAuthenticated(string username, string password);
         Task<bool> InsertToken(string username, string token, DateTime expiryDate);
-        Task<bool> SoftDeleteOrder(int itemId);
+        Task<bool> SoftDeleteOrder(int itemId, string Reason);
         Task<bool> UpdateOrderStatus(OrderListModel updatedOrders);
         Task<List<OrderListModel>> GetOrderHomeDelivery(int userId);
         Task<bool> placeOnline(OrderModel order);

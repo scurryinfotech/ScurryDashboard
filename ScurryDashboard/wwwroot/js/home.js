@@ -1636,7 +1636,7 @@ function updateOrderDetails(tableTitle) {
                     }
 
                     isUpdateDisabled = "disabled";
-                    isDeleteDisabled = "disabled";
+                    isDeleteDisabled = "";
                 }
 
                 detailsHtml += `
@@ -1674,7 +1674,7 @@ function updateOrderDetails(tableTitle) {
                             ${actionButton}
                         </td>
                         <td>
-                            <button class="btn btn-danger btn-sm delete-order-btn" data-id="${order.id}" ${isDeleteDisabled}>Delete</button>
+                            <button class="btn btn-danger btn-sm delete-order-btn" data-id="${order.id}">Delete</button>
                         </td>
                     </tr>
                 `;
@@ -1716,15 +1716,25 @@ function updateOrderDetails(tableTitle) {
 
     renderTable(tableOrders);
 
-    // Delete (only assigning)
     $(document)
         .off("click", ".delete-order-btn")
         .on("click", ".delete-order-btn", function () {
             const id = $(this).data("id");
             let order = (window.liveOrdersData || []).find((o) => o.id === id);
-            if (!order || order.orderStatusId !== 1) return;
+
+            const status = Number(order?.orderStatusId);
+            if (!order || (status !== 1 && status !== 2)) return;
+
+            const reason = prompt("Enter reason for deleting this order:");
+
+            if (!reason || reason.trim() === "") {
+                alert("Reason is required.");
+                return;
+            }
+
+            // Step 3: Confirm
             if (confirm("Are you sure you want to delete this order?")) {
-                deleteOrder(id);
+                deleteOrder(id, reason); 
             }
         });
 
@@ -2427,7 +2437,6 @@ function setupDiscountButtons() {
     $("#disciount15").click(() => applyPercentageDiscount(15));
 }
 
-// ---- Discount helpers: compute subtotal and bind buttons ---- //
 function computeCurrentSubtotal() {
     try {
         // Online order context
@@ -2446,7 +2455,6 @@ function computeCurrentSubtotal() {
             return 0;
         }
 
-        // Table context (currentOrderData contains ids or objects)
         const ids = Array.isArray(currentOrderData) ? currentOrderData.map(x => {
             if (x && typeof x === 'object') return x.id ?? x.orderId ?? x;
             return x;
@@ -2755,226 +2763,141 @@ function showSuccessMessage(message) {
 }
 
 
-function deleteOrder(id) {
-
+function deleteOrder(id, reason) {
     if (id === undefined || id === null) return;
 
     const idStr = String(id).trim();
+    const payload = JSON.stringify({
+        id: id,
+        reason: reason || ""
+    });
 
-    // Helper: remove item from ordersData and update UI
-
+    // Helper: remove item locally
     function removeItemLocally(orderIndex, itemId) {
-
         const order = ordersData[orderIndex];
 
-        order.items = order.items.filter(it => String(it.itemId ?? it.id ?? it.item_id ?? "") !== String(itemId));
+        order.items = order.items.filter(it =>
+            String(it.itemId ?? it.id ?? it.item_id ?? "") !== String(itemId)
+        );
 
-        // Recalculate total
-
-        order.total = order.items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
-
-        // If no items left remove the whole order
+        order.total = order.items.reduce((s, it) =>
+            s + (Number(it.price || 0) * Number(it.quantity || 0)), 0
+        );
 
         if (order.items.length === 0) ordersData.splice(orderIndex, 1);
 
         renderOrders();
-
         if (typeof updateNewOrdersBadge === 'function') updateNewOrdersBadge();
-
     }
 
-    // 1) Check if id matches an itemId inside any online order
-
+    // =========================
+    // 1) ITEM DELETE
+    // =========================
     for (let i = 0; i < ordersData.length; i++) {
-
         const ord = ordersData[i];
-
         if (!ord || !Array.isArray(ord.items)) continue;
 
         const foundItem = ord.items.find(it => {
-
             const iid = it.itemId ?? it.id ?? it.item_id ?? "";
-
             return String(iid) === idStr;
-
         });
 
         if (foundItem) {
-
-            // Call server to soft-delete this item (server endpoint expects { id: <itemId> })
-
             $.ajax({
-
                 url: '/Repository/SoftDeleteOrder',
-
                 type: 'POST',
-
                 contentType: 'application/json',
-
-                data: JSON.stringify(id),
-
-                success: function (data, textStatus, jqXHR) {
-
+                data: payload,
+                success: function () {
                     removeItemLocally(i, id);
-
                     showSuccessMessage('Order item deleted');
-
-                    //setTimeout(() => { checkAndStopBeepIfNoProblems(); }, 100);
-
                 },
-
-                error: function (jqXHR, textStatus, errorThrown) {
-
-                    console.error('SoftDeleteOrder item failed', { id, status: jqXHR.status, body: jqXHR.responseText });
-
-                    const message = jqXHR.responseText ? jqXHR.responseText : 'Failed to delete order item';
-
-                    showNotification(message, 'error');
-
+                error: function (jqXHR) {
+                    console.error('Item delete failed', jqXHR.responseText);
+                    showNotification('Failed to delete item', 'error');
                 }
-
             });
-
-            return; // handled
-
+            return;
         }
-
     }
 
-    // 2) Check if id matches an entire online orderId
-
+    // =========================
+    // 2) ONLINE ORDER DELETE
+    // =========================
     const orderIdx = ordersData.findIndex(o => {
-
         if (!o) return false;
 
-        const candidates = [o.orderId, o.order_id, o.id].map(x => x === undefined || x === null ? "" : String(x));
+        const candidates = [o.orderId, o.order_id, o.id]
+            .map(x => x === undefined || x === null ? "" : String(x));
 
-        return candidates.some(c => c === idStr || c.includes(idStr) || idStr.includes(c));
-
+        return candidates.some(c =>
+            c === idStr || c.includes(idStr) || idStr.includes(c)
+        );
     });
 
     if (orderIdx !== -1) {
-
-        const order = ordersData[orderIdx];
-
-        // Use RejectOnlineOrder endpoint (controller has it) to remove online order server-side.
-
         $.ajax({
-
-            url: '/Repository/RejectOnlineOrder',
-
+            url: '/Home/RejectOnlineOrder',
             type: 'POST',
-
             contentType: 'application/json; charset=utf-8',
-
-            data: JSON.stringify(idStr),
-
-            success: function (data, textStatus, jqXHR) {
-
-                console.log('RejectOnlineOrder success', { orderId: idStr, status: jqXHR.status, data });
-
-                // Remove locally only after server success
-
+            data: payload,
+            success: function () {
                 ordersData.splice(orderIdx, 1);
-
                 renderOrders();
-
                 updateNewOrdersBadge();
-
                 showSuccessMessage(`Online order ${idStr} removed`);
-
             },
-
-            error: function (jqXHR, textStatus, errorThrown) {
-
-                console.error('RejectOnlineOrder failed', { orderId: idStr, status: jqXHR.status, body: jqXHR.responseText });
-
-                const message = jqXHR.responseText ? jqXHR.responseText : `Failed to remove online order ${idStr}`;
-
-                showNotification(message, 'error');
-
+            error: function (jqXHR) {
+                console.error('Online delete failed', jqXHR.responseText);
+                showNotification('Failed to remove online order', 'error');
             }
-
         });
-
         return;
-
     }
 
-    // 3) Fallback: assume this is a live/table order id (numeric) --> call SoftDeleteOrder and only update UI on success
-
+    // =========================
+    // 3) TABLE ORDER DELETE
+    // =========================
     $.ajax({
-
         url: '/Repository/SoftDeleteOrder',
-
         type: 'POST',
-
         contentType: 'application/json',
+        data: payload,
+        success: function (data) {
 
-        data: JSON.stringify(id),
+            // Remove from live orders
+            window.liveOrdersData = (window.liveOrdersData || []).filter(order =>
+                String(order.id) !== String(id) &&
+                String(order.orderId || "") !== String(id)
+            );
 
-        success: function (data, textStatus, jqXHR) {
-
-
-            window.liveOrdersData = (window.liveOrdersData || []).filter(order => {
-
-                return String(order.id) !== String(id) && String(order.orderId || "") !== String(id);
-
-            });
-
+            // Cleanup timers
             try {
-
                 if (reminderTimers[id]) { clearTimeout(reminderTimers[id]); delete reminderTimers[id]; }
-
                 if (completionTimers[id]) { clearTimeout(completionTimers[id]); delete completionTimers[id]; }
-
                 if (orderReceivedTimes[id]) delete orderReceivedTimes[id];
-
                 if (orderAcceptedTimes[id]) delete orderAcceptedTimes[id];
-
             } catch (e) {
-
-                console.warn('Timer cleanup error for id', id, e);
-
+                console.warn('Timer cleanup error', e);
             }
 
             // Refresh UI
-
             refreshOrders();
-
             bindDynamicTable();
-
             updateStats();
 
-            try { updateOrderDetails($('.modal-title').text()); } catch (e) { /* ignore */ }
+            try {
+                updateOrderDetails($('.modal-title').text());
+            } catch (e) { }
 
-            if (data) {
-
-                showSuccessMessage('Deleted: ' + String(data));
-
-            } else {
-
-                showSuccessMessage('Order deleted successfully!');
-
-            }
-
-            //setTimeout(() => { checkAndStopBeepIfNoProblems(); }, 100);
+            showSuccessMessage(data ? 'Deleted: ' + data : 'Order deleted successfully!');
         },
-
-        error: function (jqXHR, textStatus, errorThrown) {
-
-            console.error('SoftDeleteOrder table failed', { id, status: jqXHR.status, body: jqXHR.responseText });
-
-            const message = jqXHR.responseText ? jqXHR.responseText : 'Failed to delete order';
-
-            showNotification(message, 'error');
-
+        error: function (jqXHR) {
+            console.error('Delete failed', jqXHR.responseText);
+            showNotification('Failed to delete order', 'error');
         }
-
     });
-
 }
-
 function updateConfirmOrderBtn(tableNo) {
 
 
