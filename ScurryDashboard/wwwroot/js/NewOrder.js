@@ -733,8 +733,6 @@ function postOrder(s) {
         contentType: 'application/json',
         data: JSON.stringify(payload),
         success: function () {
-            console.log('[GNS] Order saved OK — table:', s.tableNo, 'type:', orderType);
-            // If this order was created for a table via query param, close the NewOrder page and go back
             try {
                 if (window.__initialTableParam) {
                     // Give a short delay for user feedback then navigate back to home (table service)

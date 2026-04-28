@@ -411,27 +411,29 @@ namespace ScurryDashboard.Controllers
                 return StatusCode(500, "Error calling SetAvailability API");
             }
         }
+        [HttpGet]
         public async Task<IActionResult> GetOrderOnline()
         {
-            var client = _httpClientFactory.CreateClient();
-            var apiUrl = apiPort + "/api/Order/GetOrderOnline?UserName=" + userName;
-            string jwtToken = token;
-
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
-
             try
             {
-                var response = await client.GetAsync(apiUrl);
-                var rawJson = await response.Content.ReadAsStringAsync();
-                var orders = JsonSerializer.Deserialize<List<ScurryDashboard.Model.OrderListModel2>>(rawJson);
+                var client = _httpClientFactory.CreateClient();
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await client.GetAsync(apiPort + "/api/Order/GetOrderOnline?UserName=" + userName);
+
+                if (!response.IsSuccessStatusCode)
+                    return Json(new List<ScurryDashboard.Model.OrderListModel2>());
+
+                var orders = JsonSerializer.Deserialize<List<ScurryDashboard.Model.OrderListModel2>>(
+                    await response.Content.ReadAsStringAsync());
 
                 return Json(orders);
             }
-
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error calling Order API");
-                return StatusCode(500, "Error calling Order API");
+                // Agar API band hai ya koi bhi error aaye, empty list return karo
+                return Json(new List<ScurryDashboard.Model.OrderListModel2>());
             }
         }
         // this is for the online update status

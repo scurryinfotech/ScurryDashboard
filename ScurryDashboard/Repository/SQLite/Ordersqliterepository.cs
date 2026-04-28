@@ -537,11 +537,14 @@ namespace OrderService.Repository.Service
                 {
                     // Mark all orders with this OrderId as completed (status 3) and inactive
                     var upd = SQLiteHelper.Query(con, @"
-                        UPDATE Orders SET
-                            OrderStatus = 3,
-                            IsActive = 0,
-                            ModifiedDate = datetime('now')
-                        WHERE OrderId = @OrderId");
+                        UPDATE Orders 
+SET 
+    OrderStatus = 3,
+    IsActive = 0,
+    ModifiedDate = datetime('now')
+WHERE 
+    OrderId = @OrderId
+    AND NOT (IsActive = 0 AND OrderStatus = 5);");
                     upd.Transaction = tx;
                     upd.Parameters.AddWithValue("@OrderId", summary.OrderId);
                     await upd.ExecuteNonQueryAsync();
@@ -583,7 +586,7 @@ namespace OrderService.Repository.Service
                     FROM   OrderSummary s
                     INNER JOIN Orders     o  ON s.OrderId  = o.OrderId
                     LEFT  JOIN menu_items mi ON mi.item_id = o.item_id
-                    WHERE  s.OrderId = @OrderId
+                    WHERE  s.OrderId = @OrderId and OrderStatus != 5
                     ORDER  BY o.Id ASC");
                 cmd.Parameters.AddWithValue("@OrderId", orderId);
                 await using var rdr = await cmd.ExecuteReaderAsync();

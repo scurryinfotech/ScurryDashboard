@@ -289,7 +289,7 @@ $(document).on("click", "#stopBeepBtn", function () {
 
 function initHomeSwitch() {
     $.ajax({
-        url: '/R/GetAvailabilityHomeDelivery',
+        url: '/Repository/GetAvailabilityHomeDelivery',
         method: 'GET',
         contentType: 'application/json',
         success: function (data) {
@@ -960,7 +960,6 @@ function buildBillUI(billData) {
             discountAmount: discount
         };
         // debug log to help verify payload used for thermal printing
-        console.log('[Bill] prepared currentBillData:', window.currentBillData);
     } catch (e) {
         console.warn('prepare currentBillData failed', e);
         window.currentBillData = null;
@@ -1106,7 +1105,6 @@ function loadTableOrders() {
         type: "GET",
         success: function (data) {
 
-            console.log(data);
             window.liveOrdersData = data || [];
             filterCompletedOrdersToHistory();
 
@@ -2669,20 +2667,20 @@ function completeTableOrder(order, callback) {
     });
 }
 
-function updateConfirmOrderBtn(tableNo) {
-    // If there are active orders -> "Complete" mode, else "Accept" mode
-    const data = window.liveOrdersData || [];
-    const hasActive = data.some((o) => o.tableNo === tableNo && o.orderStatusId === 2);
-    const $btn = $("#confirmOrderBtn");
+//function updateConfirmOrderBtn(tableNo) {
+//    // If there are active orders -> "Complete" mode, else "Accept" mode
+//    const data = window.liveOrdersData || [];
+//    const hasActive = data.some((o) => o.tableNo === tableNo && o.orderStatusId === 2);
+//    const $btn = $("#confirmOrderBtn");
 
-    if (!$btn.length) return;
+//    if (!$btn.length) return;
 
-    if (hasActive) {
-        $btn.text("Complete Orders").data("mode", "complete").removeClass("btn-success").addClass("btn-primary");
-    } else {
-        $btn.text("Accept Orders").data("mode", "accept").removeClass("btn-primary").addClass("btn-success");
-    }
-}
+//    if (hasActive) {
+//        $btn.text("Complete Orders").data("mode", "complete").removeClass("btn-success").addClass("btn-primary");
+//    } else {
+//        $btn.text("Accept Orders").data("mode", "accept").removeClass("btn-primary").addClass("btn-success");
+//    }
+//}
 
 // ========== Safe Stubs for external functions ==========
 
@@ -2700,7 +2698,6 @@ function safeCall(fnName, ...args) {
 // If not defined elsewhere, provide harmless no-ops
 if (typeof window.showSuccessMessage !== "function") {
     window.showSuccessMessage = function (msg) {
-        console.log("[INFO]", msg);
     };
 }
 if (typeof window.refreshOrders !== "function") {
@@ -3707,7 +3704,7 @@ function getOrdersFromRestaurant() {
 
 
     $.ajax({
-        url: "/Repository/GetOrderOnline",
+        url: "/Home/GetOrderOnline",
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'

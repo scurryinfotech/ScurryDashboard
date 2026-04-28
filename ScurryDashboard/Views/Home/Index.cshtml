@@ -639,23 +639,6 @@
 
 <div class="container-fluid px-3 px-md-0">
 
-    <div class="gns-revenue-bar">
-        <div class="gns-revenue-bar__left">
-            <div class="gns-revenue-bar__icon">
-                <i class="fas fa-chart-line"></i>
-            </div>
-            <div>
-                <div class="gns-revenue-bar__label" id="revenueDateRange">Today's Revenue</div>
-                <h2 class="gns-revenue-bar__title">Revenue Summary</h2>
-            </div>
-        </div>
-        <div class="gns-revenue-bar__right">
-            <div class="gns-revenue-bar__amount" id="totalRevenue">₹0.00</div>
-            <div class="gns-revenue-bar__count" id="orderCount">0 Orders</div>
-        </div>
-    </div>
-
-
     <div class="dashboard-section">
         <div class="section-title">
             <span>📦</span> Online Delivery
@@ -673,49 +656,7 @@
         <div id="divTable"></div>
     </div>
 
-    <!-- ── Order History ─────────────────────────────────── -->
-    <div class="gns-card">
-        <div class="gns-card__header">
-            <h3 class="gns-card__title"><i class="fas fa-history me-2" style="color:var(--gns-accent)"></i>Order History</h3>
-        </div>
-        <div class="gns-card__body" style="padding-bottom:8px">
-
-            <!-- Filter Row -->
-            <div class="gns-filter-row">
-                <label>From</label>
-                <input type="date" id="startDate" />
-                <span class="filter-sep">→</span>
-                <label>To</label>
-                <input type="date" id="endDate" />
-                <button id="btnFilter" class="btn-gns btn-gns-primary" style="margin-left:4px">
-                    <i class="fas fa-filter"></i> Filter
-                </button>
-                <button id="btnClear" class="btn-gns btn-gns-ghost">
-                    <i class="fas fa-times"></i> Clear
-                </button>
-            </div>
-
-            <div class="table-responsive" id="tableContainer">
-                <table id="orderHistoryTable" class="table table-bordered table-sm w-100">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Customer Name</th>
-                            <th>Customer Phone</th>
-                            <th>Table No</th>
-                            <th>Item Name</th>
-                            <th>Price</th>
-                            <th>Total Items</th>
-                            <th>Payment Mode</th>
-                            <th>Date</th>
-                            <th class="dt-control">View Bill</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    
 
 </div>
 

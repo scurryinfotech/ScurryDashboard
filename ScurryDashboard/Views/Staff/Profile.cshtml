@@ -538,15 +538,12 @@
                     $.ajax({
             url: `/Attendance/GetProfile?staffId=${STAFF_ID}&month=${m}&year=${y}`,
             success: d => {
-                console.log("API SUCCESS:", d);
                 renderHero(d.staffInfo);
                 renderStats(d.monthlySummary);
                 renderCalendar(d.monthAttendance, +m, +y);
                 renderPayroll(d.payrollHistory);
             },
             error: xhr => {
-                console.log("ERROR STATUS:", xhr.status);
-                console.log("ERROR RESPONSE:", xhr.responseText);
                 gnsToast(xhr.responseJSON?.message || 'Load failed.', 'error');
             }
         });

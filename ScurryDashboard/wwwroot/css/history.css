@@ -1,7 +1,100 @@
 /* Minimal styles to match site theme for history page */
-#orderHistoryTable tbody tr.table-success { background: #f1fdf4; }
-#orderHistoryTable td, #orderHistoryTable th { vertical-align: middle; }
-.gns-filter-row { align-items: center; }
-#revenueDateRange { font-size: .85rem; color: var(--gns-text-muted); }
-#totalRevenue { font-size: 1.2rem; color: var(--gns-accent); }
-#orderCount { font-size: .85rem; color: var(--gns-text-muted); margin-left:6px; }
+#orderHistoryTable tbody tr.table-success {
+    background: #f1fdf4;
+}
+
+#orderHistoryTable td, #orderHistoryTable th {
+    vertical-align: middle;
+}
+
+.gns-filter-row {
+    align-items: center;
+}
+
+#revenueDateRange {
+    font-size: .85rem;
+    color: var(--gns-text-muted);
+}
+
+#totalRevenue {
+    font-size: 1.2rem;
+    color: var(--gns-accent);
+}
+
+#orderCount {
+    font-size: .85rem;
+    color: var(--gns-text-muted);
+    margin-left: 6px;
+}
+
+/* ── Bill Modal Overlay ── */
+#bill-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+    #bill-modal.hidden {
+        display: none !important;
+    }
+
+    #bill-modal .modal-content {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+        width: 100%;
+        max-width: 480px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    #bill-modal .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        border-bottom: 1px solid #eee;
+        flex-shrink: 0;
+    }
+
+    #bill-modal .modal-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    #bill-modal .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+        color: #666;
+        padding: 0 4px;
+    }
+
+        #bill-modal .close-btn:hover {
+            color: #111;
+        }
+
+#bill-content {
+    padding: 16px 18px;
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+#bill-modal .modal-actions {
+    padding: 12px 18px;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
