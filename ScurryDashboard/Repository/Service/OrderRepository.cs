@@ -1,5 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using OrderService.Model;
+
+
 using OrderService.Repository.Interface;
 using System.Data;
 
@@ -1431,6 +1433,46 @@ namespace OrderService.Repository.Service
                 if (con.State == ConnectionState.Open)
                     con.Close();
             }
+            return flag;
+        }
+
+        //Implemented missing interface member
+        public async Task<bool> UpdateOrderQuantity(OrderListModel order)
+        {
+            bool flag = false;
+            try
+            {
+                connection();
+                using var cmd = new SqlCommand("sp_UpdateOrderQuantity", con)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                cmd.Parameters.Add("@Id", SqlDbType.Int).Value = order.Id;
+                cmd.Parameters.Add("@HalfPortion", SqlDbType.Int).Value = order.HalfPortion;
+                cmd.Parameters.Add("@FullPortion", SqlDbType.Int).Value = order.FullPortion;
+
+                var rowsParam = new SqlParameter("@RowsAffected", SqlDbType.Int)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(rowsParam);
+
+                _ = await cmd.ExecuteNonQueryAsync();
+
+                var rows = rowsParam.Value is int n ? n : 0;
+                flag = rows > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in UpdateOrderQuantity: " + ex.Message);
+            }
+            finally
+            {
+                if (con.State == ConnectionState.Open)
+                    con.Close();
+            }
+
             return flag;
         }
 

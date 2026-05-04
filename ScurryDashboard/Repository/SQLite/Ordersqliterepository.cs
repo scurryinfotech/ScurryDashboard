@@ -189,6 +189,37 @@ namespace OrderService.Repository.Service
             return list;
         }
 
+        // This code is to update the order orders
+        public async Task<bool> UpdateOrderQuantity(OrderListModel order)
+        {
+            try
+            {
+                await using var con = await SQLiteHelper.OpenAsync(_sqliteCs);
+
+                var cmd = SQLiteHelper.Query(con, @"
+            UPDATE Orders
+            SET 
+                FullPortion = @FullPortion,
+                HalfPortion = @HalfPortion,
+                ModifiedDate = datetime('now')
+            WHERE Id = @Id
+        ");
+
+                cmd.Parameters.AddWithValue("@FullPortion", order.FullPortion);
+                cmd.Parameters.AddWithValue("@HalfPortion", order.HalfPortion);
+                cmd.Parameters.AddWithValue("@Id", order.Id);
+
+                var rows = await cmd.ExecuteNonQueryAsync();
+
+                return rows > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("UpdateOrderQuantity Error: " + ex.Message);
+                return false;
+            }
+        }
+
         public async Task<bool> AddOrder(OrderModel order)
         {
             bool flag = false;

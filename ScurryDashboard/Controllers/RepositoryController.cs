@@ -3,6 +3,7 @@ using OrderService.Repository.Interface;
 using ScurryDashboard.Models;
 using ScurryDashboard.Model;
 using System.Text.Json;
+using OrderListModel = OrderService.Model.OrderListModel;
 
 namespace ScurryDashboard.Controllers
 {
@@ -250,7 +251,33 @@ namespace ScurryDashboard.Controllers
                 return StatusCode(500, "Error updating order");
             }
         }
+        [HttpPost]
+        public async Task<IActionResult> UpdateOrderQuantity([FromBody] UpdateOrderQuantityRequest request)
+        {
+            try
+            {
+                if (request == null || request.Id <= 0)
+                    return BadRequest("Invalid request");
 
+                var order = new OrderListModel
+                {
+                    Id = request.Id,
+                    HalfPortion = request.HalfPortion,
+                    FullPortion = request.FullPortion
+                };
+
+                var ok = await _orderRepository.UpdateOrderQuantity(order);
+
+                if (ok) return Ok(new { message = "Updated successfully" });
+
+                return StatusCode(500, "Failed to update order quantity");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating order quantity");
+                return StatusCode(500, "Error updating order quantity");
+            }
+        }
         [HttpPost]
         public async Task<IActionResult> UpdateTableOrderItem([FromBody] ScurryDashboard.Models.OrderListModel updatedOrder)
         {

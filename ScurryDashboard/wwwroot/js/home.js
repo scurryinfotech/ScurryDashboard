@@ -51,7 +51,7 @@ $(document).ready(function () {
         getOrdersFromRestaurant();
         //setupInfiniteScroll();
         getOrdersFromCoffee();
-        
+
     }, 3000);
 
 
@@ -163,7 +163,7 @@ function hideStopBeepButton() {
 }
 
 function playBeep() {
-    
+
     if (!audioUnlocked) return;
     debugger;
     if (isBeepPlaying) return;
@@ -207,7 +207,7 @@ function stopBeep() {
 }
 
 function startTableBeep(tableNo) {
-     
+
     if (!audioUnlocked) return;
     if (beepTables[tableNo]) return;
 
@@ -324,7 +324,7 @@ function calculateRevenue(orders) {
         if (!id) {
             // fallback to createdAt-based unique key
             const key = String(o.createdAt ?? o.Date ?? o.date ?? new Date().toISOString());
-            unique[`__${key}_${Math.random().toString(36).slice(2,7)}`] = { amount: amt, createdAt: o.createdAt ?? o.Date ?? o.date };
+            unique[`__${key}_${Math.random().toString(36).slice(2, 7)}`] = { amount: amt, createdAt: o.createdAt ?? o.Date ?? o.date };
         } else if (!unique[id]) {
             unique[id] = { amount: amt, createdAt: o.createdAt ?? o.Date ?? o.date };
         }
@@ -947,8 +947,8 @@ function buildBillUI(billData) {
     }
 
     // Prepare global canonical payload for thermal printing
-        try {
-        const thermalItems = itemsArray.map(item => ({ name: item.itemName || item.name || '-', quantity: (Number(item.fullPortion)||0) + (Number(item.halfPortion)||0) || Number(item.quantity)||1, price: Number(item.fullPrice||item.price||0) }));
+    try {
+        const thermalItems = itemsArray.map(item => ({ name: item.itemName || item.name || '-', quantity: (Number(item.fullPortion) || 0) + (Number(item.halfPortion) || 0) || Number(item.quantity) || 1, price: Number(item.fullPrice || item.price || 0) }));
         window.currentBillData = {
             orderId: orderIdVal,
             customer: customerVal || '',
@@ -1633,19 +1633,44 @@ function updateOrderDetails(tableTitle) {
                         statusText = "Active";
                     }
 
-                    isUpdateDisabled = "disabled";
+                    isUpdateDisabled = "";
                     isDeleteDisabled = "";
                 }
 
                 detailsHtml += `
-                    <tr class="${rowClass}">
-                        <td  style="display:none" >${order.id}</td>
-                        <td class="item-name">${order.itemName}</td>
-                        <td>${order.halfPortion}</td>
-                        <td>${order.fullPortion}</td>
-                        <td>₹${totalPrice}</td>
-                        <td>${statusText}</td>
-                        <td>${order.date
+<tr class="${rowClass}">
+    
+    <td style="display:none">${order.id}</td>
+
+    <td class="item-name">${order.itemName}</td>
+
+    <!-- HALF -->
+    <td>
+        <div class="qty-group d-flex align-items-center justify-content-center" data-id="${order.id}">
+            <button class="btn btn-sm btn-light half-dec" ${isUpdateDisabled}>-</button>
+            <span class="mx-2 half-val">${order.halfPortion}</span>
+            <button class="btn btn-sm btn-light half-inc" ${isUpdateDisabled}>+</button>
+        </div>
+    </td>
+
+    <!-- FULL -->
+    <td>
+        <div class="qty-group d-flex align-items-center justify-content-center" data-id="${order.id}">
+            <button class="btn btn-sm btn-light full-dec" ${isUpdateDisabled}>-</button>
+            <span class="mx-2 full-val">${order.fullPortion}</span>
+            <button class="btn btn-sm btn-light full-inc" ${isUpdateDisabled}>+</button>
+        </div>
+    </td>
+
+    <!-- TOTAL -->
+    <td>₹${totalPrice}</td>
+
+    <!-- STATUS -->
+    <td>${statusText}</td>
+
+    <!-- DATE -->
+    <td>
+        ${order.date
                         ? new Date(order.date).toLocaleString("en-IN", {
                             year: "numeric",
                             month: "2-digit",
@@ -1656,26 +1681,26 @@ function updateOrderDetails(tableTitle) {
                             hour12: false
                         })
                         : ""
-                    }</td>
-                    <td>${order.specialInstructions} </td>
-                        <td style="display:none">
-                            <div class="input-group input-group-sm qty-group d-flex flex-row align-items-center" data-id="${order.id}">
-                                <button class="btn btn-light qty-dec" type="button" ${isUpdateDisabled}>-</button>
-                                <input class="form-control qty-input text-center" value="${order.pendingFullPortion !== undefined
-                        ? order.pendingFullPortion
-                        : order.fullPortion
-                    }" readonly style="min-width:40px; max-width:50px;" ${isUpdateDisabled}>
-                                <button class="btn btn-light qty-inc" type="button" ${isUpdateDisabled}>+</button>
-                            </div>
-                        </td>
-                        <td>
-                            ${actionButton}
-                        </td>
-                        <td>
-                            <button class="btn btn-danger btn-sm delete-order-btn" data-id="${order.id}">Delete</button>
-                        </td>
-                    </tr>
-                `;
+                    }
+    </td>
+
+    <!-- SPECIAL INSTRUCTION -->
+    <td>${order.specialInstructions || '—'}</td>
+
+    <!-- ACTION -->
+    <td>
+        ${actionButton}
+    </td>
+
+    <!-- DELETE -->
+    <td>
+        <button class="btn btn-danger btn-sm delete-order-btn" data-id="${order.id}">
+            Delete
+        </button>
+    </td>
+
+</tr>
+`;
             }
         }
 
@@ -1732,7 +1757,7 @@ function updateOrderDetails(tableTitle) {
 
             // Step 3: Confirm
             if (confirm("Are you sure you want to delete this order?")) {
-                deleteOrder(id, reason); 
+                deleteOrder(id, reason);
             }
         });
 
@@ -2141,7 +2166,7 @@ function handleOnlinePaymentConfirm() {
             // Store payment mode locally (optional)
 
             order.paymentMode = mode;
-            
+
 
             closePaymentModal();
 
@@ -2161,6 +2186,76 @@ function handleOnlinePaymentConfirm() {
 
 }
 
+
+//This is for the table order items o increase karne ka tarika 
+// FULL +
+$(document).on("click", ".full-inc", function () {
+    const id = $(this).closest(".qty-group").data("id");
+    let order = window.liveOrdersData.find(o => o.id === id);
+    if (!order) return;
+
+    order.fullPortion = Number(order.fullPortion) + 1;
+
+    updateOrderQuantityAPI(order);
+    updateOrderDetails($(".modal-title").text());
+});
+
+// FULL -
+$(document).on("click", ".full-dec", function () {
+    const id = $(this).closest(".qty-group").data("id");
+    let order = window.liveOrdersData.find(o => o.id === id);
+    if (!order) return;
+
+    order.fullPortion = Math.max(0, Number(order.fullPortion) - 1);
+
+    updateOrderQuantityAPI(order);
+    updateOrderDetails($(".modal-title").text());
+});
+
+// HALF +
+$(document).on("click", ".half-inc", function () {
+    const id = $(this).closest(".qty-group").data("id");
+    let order = window.liveOrdersData.find(o => o.id === id);
+    if (!order) return;
+
+    order.halfPortion = Number(order.halfPortion) + 1;
+
+    updateOrderQuantityAPI(order);
+    updateOrderDetails($(".modal-title").text());
+});
+
+// HALF -
+$(document).on("click", ".half-dec", function () {
+    const id = $(this).closest(".qty-group").data("id");
+    let order = window.liveOrdersData.find(o => o.id === id);
+    if (!order) return;
+
+    order.halfPortion = Math.max(0, Number(order.halfPortion) - 1);
+
+    updateOrderQuantityAPI(order);
+    updateOrderDetails($(".modal-title").text());
+});
+
+
+//This is the actual api to increase the items or to decrease the item 
+function updateOrderQuantityAPI(order) {
+    $.ajax({
+        url: "/Repository/UpdateOrderQuantity",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            id: order.id,
+            halfPortion: order.halfPortion,
+            fullPortion: order.fullPortion
+        }),
+        success: function () {
+            console.log("Updated");
+        },
+        error: function () {
+            alert("Update failed");
+        }
+    });
+}
 
 // handleTablePaymentConfirm
 function handleTablePaymentConfirm() {
@@ -3253,7 +3348,7 @@ function confirmDelivery() {
     updateRestaurantOrderStatus(
         selectedDeliveryOrderId,
         'Out for delivery',
-        staffId   
+        staffId
     );
 
     closeStaffModal();
@@ -3550,7 +3645,7 @@ function updateRestaurantOrderStatus(orderId, status, staffId = null) {
             if (idx !== -1) {
                 ordersData[idx].status = status;
             }
-         
+
 
             renderOrders();
             showNotification('Order updated', 'success');
@@ -4296,7 +4391,7 @@ function printThermalBill(order) {
         });
 
         const payload = {
-            selectedTable: parseInt(_tableNo),   
+            selectedTable: parseInt(_tableNo),
             orderItems: orderItems,
             customerName: document.getElementById('nomCustName').value.trim() || 'Walk-in',
             userPhone: document.getElementById('nomCustPhone').value.trim() || '',
@@ -4406,19 +4501,19 @@ function printThermalBill(order) {
     });
 
     // Replace the direct call with a safe binder
-function bindNomSearch() {
-  const el = document.getElementById('nomSearch');
-  if (el) {
-    el.addEventListener('input', function () {
-      if (_loaded) renderItems();
-    });
-  }
-}
+    function bindNomSearch() {
+        const el = document.getElementById('nomSearch');
+        if (el) {
+            el.addEventListener('input', function () {
+                if (_loaded) renderItems();
+            });
+        }
+    }
 
-// If DOM not ready, wait; otherwise bind now
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bindNomSearch);
-} else {
-  bindNomSearch();
-}
+    // If DOM not ready, wait; otherwise bind now
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindNomSearch);
+    } else {
+        bindNomSearch();
+    }
 })();

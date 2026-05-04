@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
-using ScurryDashboard.Models;
 using OrderService.Repository.Interface;
+using System.Text.Json;
 
 namespace ScurryDashboard.Controllers
 {

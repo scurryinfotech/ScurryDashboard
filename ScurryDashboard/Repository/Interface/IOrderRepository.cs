@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using OrderService.Model;
+﻿using OrderService.Model;
 
 namespace OrderService.Repository.Interface
 {
@@ -38,5 +37,6 @@ namespace OrderService.Repository.Interface
         Task<CustomerAddressDto?> GetCustomerAddressOnline(string userId);
         Task<int> GetFixedDiscountAsync();
         Task<bool> SetTableCount(string userName, int count);
+        Task<bool> UpdateOrderQuantity(OrderListModel order);
     }
 }
