@@ -48,7 +48,7 @@ $(document).ready(function () {
     setInterval(function () {
         loadTableCount();
         loadTableOrders(false);
-        getOrdersFromRestaurant();
+        //getOrdersFromRestaurant();
         //setupInfiniteScroll();
         getOrdersFromCoffee();
 
