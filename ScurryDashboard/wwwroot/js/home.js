@@ -58,7 +58,7 @@ $(document).ready(function () {
 
     //initializeConnectionUI();
 
-    // Hide New Order button until a table is selected (support several possible selectors)
+    // Hide New Order button until a table is selected (support several possible selectors)qs
     try {
         $('[id=newOrderBtn], .new-order-btn, #openNewOrder').hide();
     } catch (e) { }

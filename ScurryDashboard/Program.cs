@@ -18,6 +18,11 @@ if (useSqlite)
     builder.Services.AddScoped<OrderService.Repository.Interface.IShopExpenseRepository, OrderService.Repository.Service.ShopExpenseSQLiteRepository>();
     builder.Services.AddScoped<OrderService.Repository.Interface.IOrderRepository, OrderService.Repository.Service.OrderSQLiteRepository>();
     // Register DailyExpense repository implementation for SQLite
+    builder.Services.AddScoped<OrderService.Repository.Interface.IPayrollRepository, OrderService.Repository.SQLite.PayrollSQLiteRepository>();
+
+    builder.Services.AddScoped<OrderService.Repository.Interface.IRoleRepository, OrderService.Repository.SQLite.RoleSQLiteRepository>();
+
+    builder.Services.AddScoped<OrderService.Repository.Interface.IStaffRepository, OrderService.Repository.SQLite.StaffSQLiteRepository>();
     builder.Services.AddScoped<OrderService.Repository.Interface.IDailyExpenseRepository, OrderService.Repository.Service.DailyExpenseSQLiteRepository>();
 
 }
@@ -25,7 +30,10 @@ else
 {
     builder.Services.AddScoped<OrderService.Repository.Interface.IShopExpenseRepository, OrderService.Repository.Service.ShopExpenseRepository>();
     builder.Services.AddScoped<OrderService.Repository.Interface.IOrderRepository, OrderService.Repository.Service.OrderRepository>();
-    // Register DailyExpense repository implementation for SQL Server
+    // Register DailyExpense repository implementation for SQL Server   
+    builder.Services.AddScoped<OrderService.Repository.Interface.IPayrollRepository, OrderService.Repository.Service.PayrollRepository>();
+
+    builder.Services.AddScoped<OrderService.Repository.Interface.IStaffRepository, OrderService.Repository.Service.StaffRepository>();
     builder.Services.AddScoped<OrderService.Repository.Interface.IDailyExpenseRepository, OrderService.Repository.Service.DailyExpenseRepository>();
 
 }

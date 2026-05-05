@@ -18,5 +18,6 @@
         public DateTime? ModifiedAt { get; set; }
         public string? ModifiedBy { get; set; }
         public bool AvalFDelivery { get; set; }
+        public int CreatedBy { get; internal set; }
     }
 }

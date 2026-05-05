@@ -12,6 +12,7 @@
         public DateTime? JoinDate { get; set; }
         public bool IsActive { get; set; } = true;
         public string ModifiedBy { get; set; } = "System";
+        public int CreatedBy { get; set; }
     }
 
 }

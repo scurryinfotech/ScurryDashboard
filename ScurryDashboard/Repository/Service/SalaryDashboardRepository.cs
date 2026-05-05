@@ -2,7 +2,6 @@
 using OrderService.Model;
 
 using OrderService.Repository.Interface;
-using Twilio.TwiML.Messaging;
 
 
 namespace OrderService.Repository.Service
