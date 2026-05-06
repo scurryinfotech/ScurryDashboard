@@ -20,7 +20,14 @@
         <button id="btnClear" class="btn btn-sm btn-secondary">Clear</button>
         <div style="margin-left:auto; text-align:right;">
             <div id="revenueDateRange">Today's Revenue</div>
-            <div><strong id="totalRevenue">₹0.00</strong> <small id="orderCount">0 Orders</small></div>
+            <div>
+                <strong id="totalRevenue">₹0.00</strong>
+                <small id="orderCount">0 Orders</small>
+            </div>
+            <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:4px; font-size:0.85em;">
+                <span>💵 Cash: <strong id="cashRevenue">₹0.00</strong> <small id="cashCount"></small></span>
+                <span>📲 Online: <strong id="onlineRevenue">₹0.00</strong> <small id="onlineCount"></small></span>
+            </div>
         </div>
     </div>
 

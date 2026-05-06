@@ -46,14 +46,16 @@
         if (!data || data.length === 0) {
             $('#totalRevenue').text('₹0.00');
             $('#orderCount').text('0 Orders');
+            $('#cashRevenue').text('₹0.00');
+            $('#onlineRevenue').text('₹0.00');
+            $('#cashCount').text('');
+            $('#onlineCount').text('');
             return;
         }
 
         // Filter by date range
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        const start = new Date(startDate); start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate); end.setHours(23, 59, 59, 999);
 
         const filtered = data.filter(o => {
             const raw = o.createdAt ?? o.date ?? o.Date ?? o.createdDate ?? null;
@@ -62,30 +64,50 @@
             return d >= start && d <= end;
         });
 
-        // Group by orderId to count unique orders
-        const uniqueOrders = {};
-        let totalRevenue = 0;
+        // Helpers
+        const isCash = pm => !pm || pm.trim() === '' || /cash/i.test(pm);
+        const isOnline = pm => /online|upi|card|gpay|paytm|phonepe|net.?banking|neft|rtgs|wallet/i.test(pm);
+
+        let totalRevenue = 0, cashRevenue = 0, onlineRevenue = 0;
+        const uniqueOrders = {}, cashOrders = {}, onlineOrders = {};
 
         filtered.forEach(o => {
             const id = o.orderId ?? o.order_id ?? o.id ?? null;
             const amount = Number(o.amount ?? o.finalAmount ?? o.TotalAmount ?? 0) || 0;
+            const pm = (o.paymentMode ?? o.PaymentMode ?? '').toString().trim();
 
             if (id) {
                 if (!uniqueOrders[id]) {
                     uniqueOrders[id] = true;
-                    // Sum amount once per order (first row has order total)
+                    totalRevenue += amount;
+
+                    if (isCash(pm)) {
+                        cashOrders[id] = true;
+                        cashRevenue += amount;
+                    } else if (isOnline(pm)) {
+                        onlineOrders[id] = true;
+                        onlineRevenue += amount;
+                    }
                 }
-                totalRevenue += amount;
             } else {
                 totalRevenue += amount;
+                if (isCash(pm)) cashRevenue += amount;
+                else if (isOnline(pm)) onlineRevenue += amount;
             }
         });
 
-  
         const orderCount = Object.keys(uniqueOrders).length || filtered.length;
+        const cashCount = Object.keys(cashOrders).length;
+        const onlineCount = Object.keys(onlineOrders).length;
 
         $('#totalRevenue').text('₹' + totalRevenue.toFixed(2));
         $('#orderCount').text(orderCount + (orderCount === 1 ? ' Order' : ' Orders'));
+
+        $('#cashRevenue').text('₹' + cashRevenue.toFixed(2));
+        $('#cashCount').text(cashCount ? '(' + cashCount + ')' : '');
+
+        $('#onlineRevenue').text('₹' + onlineRevenue.toFixed(2));
+        $('#onlineCount').text(onlineCount ? '(' + onlineCount + ')' : '');
     }
 
     function formatDate(dateStr) {
@@ -106,6 +128,7 @@
             url: '/Repository/GetOrderHistory',
             method: 'GET',
             success: function (data) {
+                debugger
                 window.allOrdersData = data || [];
 
                 updateRevenueSummary(window.allOrdersData, startDate, endDate);

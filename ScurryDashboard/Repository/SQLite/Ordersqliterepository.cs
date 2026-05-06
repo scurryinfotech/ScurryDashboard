@@ -132,7 +132,7 @@ namespace OrderService.Repository.Service
             var list = new List<OrderListModel>();
             try
             {
-                await using var con = await SQLiteHelper.OpenAsync(_sqliteCs);
+                await using var con = await SQLiteHelper.OpenAsync(_sqliteCs); 
                 var cmd = SQLiteHelper.Query(con, @"
                     SELECT o.Id, o.OrderId, o.OrderStatus, o.FullPortion, o.HalfPortion,
                            o.TableNo, o.CreatedDate, o.ModifiedDate, o.IsActive,
@@ -499,20 +499,26 @@ namespace OrderService.Repository.Service
                 // date (CompletedDate or CreatedDate) instead of per-order item rows. This returns one
                 // row per OrderSummary which makes day-wise filtering accurate.
                 var cmd = SQLiteHelper.Query(con, @"
-                    SELECT DISTINCT
-                           os.OrderId,
-                           os.CustomerName,
-                           os.Phone,
-                           (SELECT o2.TableNo FROM Orders o2 WHERE o2.OrderId = os.OrderId LIMIT 1) AS TableNo,
-                           (SELECT mi.item_name FROM menu_items mi JOIN Orders o3 ON o3.item_id = mi.item_id WHERE o3.OrderId = os.OrderId LIMIT 1) AS ItemName,
-                           os.TotalAmount, os.DiscountAmount, os.FinalAmount,
-                           COALESCE(os.CompletedDate, os.CreatedDate) AS SummaryDate,
-                           (SELECT o4.payment_mode FROM Orders o4 WHERE o4.OrderId = os.OrderId LIMIT 1) AS PaymentMode
-                    FROM   OrderSummary os
-                    INNER JOIN Orders o ON o.OrderId = os.OrderId
-                    INNER JOIN Users  u ON u.Id = o.CreatedBy
-                    WHERE  u.Username = @UserName
-                    ORDER  BY SummaryDate DESC, os.OrderId DESC");
+  SELECT DISTINCT
+       os.OrderId,
+       os.CustomerName,
+       os.Phone,
+       (SELECT o2.TableNo FROM Orders o2 WHERE o2.OrderId = os.OrderId LIMIT 1) AS TableNo,
+       (SELECT mi.item_name 
+        FROM menu_items mi 
+        JOIN Orders o3 ON o3.item_id = mi.item_id 
+        WHERE o3.OrderId = os.OrderId 
+        LIMIT 1) AS ItemName,
+       os.TotalAmount, 
+       os.DiscountAmount, 
+       os.FinalAmount,
+       COALESCE(os.CompletedDate, os.CreatedDate) AS SummaryDate,
+       os.PaymentMode   -- ✅ yaha se lo
+FROM   OrderSummary os
+INNER JOIN Orders o ON o.OrderId = os.OrderId
+INNER JOIN Users  u ON u.Id = o.CreatedBy
+WHERE  u.Username = 'Grill_N_Shakes'
+ORDER  BY SummaryDate DESC, os.OrderId DESC;");
                 cmd.Parameters.AddWithValue("@UserName", userName);
                 await using var rdr = await cmd.ExecuteReaderAsync();
                 while (await rdr.ReadAsync())
