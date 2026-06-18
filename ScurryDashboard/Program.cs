@@ -40,7 +40,8 @@ builder.Services.AddSession(options =>
 builder.Services.AddHttpContextAccessor();
 var dbPath = Path.Combine(AppContext.BaseDirectory, "grillnshakes.db");
 var connectionString = $"Data Source={dbPath}";
-
+Console.WriteLine($"Database Path: {dbPath}");
+Console.WriteLine($"Exists: {File.Exists(dbPath)}");
 // register connection string
 builder.Services.AddSingleton(connectionString);
 
